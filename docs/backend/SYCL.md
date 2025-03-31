@@ -568,7 +568,7 @@ Properties -> C\C++ -> DPC++ -> Enable SYCL offload(yes)
 Now you can build llama.cpp with SYCL backend as a Visual Studio project.
 
 *Notes:*
-- you can avoid to specify `SYCL_INCLUDE_DIR` and `SYCL_LIBRARY_DIR` if set the two env vars `SYCL_INCLUDE_DIR_HINT` and `SYCL_LIBRARY_DIR_HINT`.
+- you can avoid specifying `SYCL_INCLUDE_DIR` and `SYCL_LIBRARY_DIR` by setting the two environment variables `SYCL_INCLUDE_DIR_HINT` and `SYCL_LIBRARY_DIR_HINT`.
 
 ### III. Run the inference
 
