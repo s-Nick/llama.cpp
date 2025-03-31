@@ -556,7 +556,7 @@ If you want to use Intel C++ compiler for the entire llama.cpp project:
 cmake -B build -G "Visual Studio 17 2022" -T "Intel C++ Compiler 2025" -A x64 -DGGML_SYCL=ON -DCMAKE_BUILD_TYPE=Release
 ```
 
-If you want to use Intel C++ Compiler only for ggml-sycl:
+If you want, you can use Intel C++ Compiler only for ggml-sycl, but `ggml` and its backend libraries *must* be build as shared libraries(i.e. `-DBUILD_SHARED_LIBRARIES=ON`):
 ```
 cmake -B build -G "Visual Studio 17 2022"  -A x64 -DGGML_SYCL=ON -DCMAKE_BUILD_TYPE=Release -DSYCL_INCLUDE_DIR="C:\Program Files (x86)\Intel\oneAPI\compiler\latest\include" -DSYCL_LIBRARY_DIR="C:\Program Files (x86)\Intel\oneAPI\compiler\latest\lib"
 ```
