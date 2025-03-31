@@ -561,7 +561,7 @@ If you want to use Intel C++ Compiler only for ggml-sycl:
 cmake -B build -G "Visual Studio 17 2022"  -A x64 -DGGML_SYCL=ON -DCMAKE_BUILD_TYPE=Release -DSYCL_INCLUDE_DIR="C:\Program Files (x86)\Intel\oneAPI\compiler\latest\include" -DSYCL_LIBRARY_DIR="C:\Program Files (x86)\Intel\oneAPI\compiler\latest\lib"
 ```
 
-In both cases, after the Visual Studio is created open it, right click on `ggml-sycl` and open properties. In the left column open `C/C++` sub menu and select `DPC++`. In the option window on the right set `Enable SYCL offload` to `yes` and apply changes.
+In both cases, after the Visual Studio solution is created, open it, right click on `ggml-sycl` and open properties. In the left column open `C/C++` sub menu and select `DPC++`. In the option window on the right set `Enable SYCL offload` to `yes` and apply changes.
 
 Properties -> C\C++ -> DPC++ -> Enable SYCL offload(yes)
 
