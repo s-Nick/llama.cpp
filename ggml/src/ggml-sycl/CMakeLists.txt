@@ -27,6 +27,15 @@ file(GLOB   GGML_HEADERS_SYCL "*.hpp")
 file(GLOB   GGML_SOURCES_SYCL "*.cpp")
 target_sources(ggml-sycl PRIVATE ${GGML_HEADERS_SYCL} ${GGML_SOURCES_SYCL})
 
+if (WIN32)
+    # To generate a Visual Studio solution, using Intel C++ Compiler for ggml-sycl is mandatory
+    if( ${CMAKE_GENERATOR} MATCHES "Visual Studio" AND NOT (${CMAKE_GENERATOR_TOOLSET} MATCHES "Intel C"))
+        set_target_properties(ggml-sycl PROPERTIES VS_PLATFORM_TOOLSET "Intel C++ Compiler 2025")
+        set(CMAKE_CXX_COMPILER "icx")
+        set(CMAKE_CXX_COMPILER_ID "IntelLLVM")
+    endif()
+endif()
+
 find_package(IntelSYCL)
 if (IntelSYCL_FOUND)
     # Use oneAPI CMake when possible
@@ -95,19 +104,10 @@ if (GGML_SYCL_GRAPH)
     target_compile_definitions(ggml-sycl PRIVATE GGML_SYCL_GRAPH)
 endif()
 
-if (WIN32)
-    if( ${CMAKE_GENERATOR} MATCHES "Visual Studio" AND NOT (${CMAKE_GENERATOR_TOOLSET} MATCHES "Intel C"))
-        set_target_properties(ggml-sycl PROPERTIES VS_PLATFORM_TOOLSET "Intel C++ Compiler 2025")
-        set(CMAKE_CXX_COMPILER "icx")
-        set(CMAKE_CXX_COMPILER_ID "IntelLLVM")
-    endif()
-endif()
-
 # Link against Intel oneMKL or oneMath
 if (GGML_SYCL_TARGET STREQUAL "INTEL")
     # Intel devices use Intel oneMKL directly instead of oneMath to avoid the limitation of linking Intel oneMKL statically
     # See https://github.com/uxlfoundation/oneMath/issues/654
-    find_package(IntelSYCL REQUIRED)
     find_package(MKL REQUIRED)
     target_link_libraries(ggml-sycl PRIVATE MKL::MKL_SYCL::BLAS)
     target_compile_definitions(ggml-sycl PRIVATE GGML_SYCL_USE_INTEL_ONEMKL)
