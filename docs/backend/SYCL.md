@@ -545,6 +545,10 @@ You have two options to use Visual Studio to build llama.cpp:
 - As CMake Project using CMake presets.
 - Creating a Visual Studio solution to handle the project.
 
+**Note**:
+
+All following commands are executed in PowerShell.
+
 1. Open as a CMake Project
 
 You can use Visual Studio to open the `llama.cpp` folder directly as a CMake project. Before compiling, select one of the SYCL CMake presets:
@@ -600,7 +604,7 @@ Once the Visual Studio solution is created, follow these steps:
 5. Apply the changes and save.
 
 
-### Navigation Path:
+*Navigation Path:*
 
 ```
 Properties -> C/C++ -> DPC++ -> Enable SYCL Offload (Yes)
