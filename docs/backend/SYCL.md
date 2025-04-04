@@ -504,13 +504,13 @@ You could download the release package for Windows directly, which including bin
 
 Choose one of following methods to build from source code.
 
-1. Script
+#### 1. Script
 
 ```sh
 .\examples\sycl\win-build-sycl.bat
 ```
 
-2. CMake
+#### 2. CMake
 
 On the oneAPI command line window, step into the llama.cpp main directory and run the following:
 
@@ -539,7 +539,7 @@ cmake --preset x64-windows-sycl-debug
 cmake --build build-x64-windows-sycl-debug -j --target llama-cli
 ```
 
-3. Visual Studio
+#### 3. Visual Studio
 
 You have two options to use Visual Studio to build llama.cpp:
 - As CMake Project using CMake presets.
@@ -549,7 +549,7 @@ You have two options to use Visual Studio to build llama.cpp:
 
 All following commands are executed in PowerShell.
 
-1. Open as a CMake Project
+###### - Open as a CMake Project
 
 You can use Visual Studio to open the `llama.cpp` folder directly as a CMake project. Before compiling, select one of the SYCL CMake presets:
 
@@ -564,7 +564,7 @@ You can use Visual Studio to open the `llama.cpp` folder directly as a CMake pro
     cmake --build build --config Release -j --target llama-cli
     ```
 
-2. Generating a Visual Studio Solution
+###### - Generating a Visual Studio Solution
 
 You can use Visual Studio solution to build and work on llama.cpp on Windows. You need to convert the CMake Project into a `.sln` file.
 
@@ -589,8 +589,6 @@ cmake -B build -G "Visual Studio 17 2022" -A x64 -DGGML_SYCL=ON -DCMAKE_BUILD_TY
 If successful the build files have been written to: *path/to/llama.cpp/build*
 Open the project file **build/llama.cpp.sln** with Visual Studio.
 
-- Configuring SYCL Offload in Visual Studio
-
 Once the Visual Studio solution is created, follow these steps:
 
 1. Open the solution in Visual Studio.
@@ -609,8 +607,6 @@ Once the Visual Studio solution is created, follow these steps:
 ```
 Properties -> C/C++ -> DPC++ -> Enable SYCL Offload (Yes)
 ```
-
-- Build
 
 Now, you can build `llama.cpp` with the SYCL backend as a Visual Studio project.
 To do it from menu: `Build -> Build Solution`.
