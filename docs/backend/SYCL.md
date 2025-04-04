@@ -549,7 +549,7 @@ You have two options to use Visual Studio to build llama.cpp:
 
 All following commands are executed in PowerShell.
 
-###### - Open as a CMake Project
+##### - Open as a CMake Project
 
 You can use Visual Studio to open the `llama.cpp` folder directly as a CMake project. Before compiling, select one of the SYCL CMake presets:
 
@@ -564,19 +564,15 @@ You can use Visual Studio to open the `llama.cpp` folder directly as a CMake pro
     cmake --build build --config Release -j --target llama-cli
     ```
 
-###### - Generating a Visual Studio Solution
+##### - Generating a Visual Studio Solution
 
 You can use Visual Studio solution to build and work on llama.cpp on Windows. You need to convert the CMake Project into a `.sln` file.
-
-- Using Intel C++ Compiler for the Entire Project
 
 If you want to use the Intel C++ Compiler for the entire `llama.cpp` project, run the following command:
 
 ```Powershell
 cmake -B build -G "Visual Studio 17 2022" -T "Intel C++ Compiler 2025" -A x64 -DGGML_SYCL=ON -DCMAKE_BUILD_TYPE=Release
 ```
-
-- Using Intel C++ Compiler Only for ggml-sycl
 
 If you prefer to use the Intel C++ Compiler only for `ggml-sycl`, ensure that `ggml` and its backend libraries are built as shared libraries ( i.e. `-DBUILD_SHARED_LIBRARIES=ON`, this is default behaviour):
 
@@ -616,9 +612,9 @@ Once it is completed, final results will be in **build/Release/bin**
 
 - You can avoid specifying `SYCL_INCLUDE_DIR` and `SYCL_LIBRARY_DIR` in the CMake command by setting the environment variables:
 
-	- `SYCL_INCLUDE_DIR_HINT`
+    - `SYCL_INCLUDE_DIR_HINT`
 
-	- `SYCL_LIBRARY_DIR_HINT`
+    - `SYCL_LIBRARY_DIR_HINT`
 
 - Above instruction has been tested with Visual Studio 17 Community edition and oneAPI 2025.0. We expect them to work also with future version if the instructions are adapted accordingly.
 
