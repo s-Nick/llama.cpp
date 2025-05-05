@@ -68,10 +68,6 @@ Each test is repeated the number of times given by `-r`, and the results are ave
 
 For a description of the other options, see the [main example](../main/README.md).
 
-Note:
-
-- When using SYCL backend, there would be hang issue in some cases. Please set `--mmp 0`.
-
 ## Examples
 
 ### Text generation with different models
