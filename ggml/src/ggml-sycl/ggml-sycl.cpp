@@ -366,7 +366,7 @@ ggml_backend_sycl_buffer_init_tensor(ggml_backend_buffer_t buffer,
         if (padded_size > original_size && tensor->view_src == nullptr) {
             SYCL_CHECK(CHECK_TRY_ERROR(ctx->stream->memset(
                 (char *)tensor->data + original_size, 0,
-                padded_size - original_size).wait()));
+                padded_size - original_size)));
         }
     }
     return GGML_STATUS_SUCCESS;
@@ -500,7 +500,7 @@ static void ggml_backend_sycl_buffer_clear(ggml_backend_buffer_t buffer,
 
     SYCL_CHECK(CHECK_TRY_ERROR((*stream)
                                     .memset(ctx->dev_ptr, value, buffer->size)
-                                    .wait()));
+                                    ));
 }
 catch (sycl::exception const &exc) {
   std::cerr << exc.what() << "Exception caught at file:" << __FILE__
@@ -522,7 +522,6 @@ static void ggml_backend_sycl_buffer_memset_tensor(ggml_backend_buffer_t buffer,
     }
     void * target_ptr = static_cast<char *>(tensor->data) + offset;
     SYCL_CHECK(CHECK_TRY_ERROR((*stream).memset(target_ptr, value, size)));
-    SYCL_CHECK(CHECK_TRY_ERROR((*stream).wait()));
 }
 
 static void ggml_backend_sycl_buffer_reset(ggml_backend_buffer_t buffer) {
@@ -844,7 +843,7 @@ ggml_backend_sycl_split_buffer_init_tensor(ggml_backend_buffer_t buffer,
             SYCL_CHECK(CHECK_TRY_ERROR(
                 (*stream)
                     .memset(buf + original_size, 0, size - original_size)
-                    .wait()));
+                    ));
         }
 
         extra->data_device[i] = buf;
@@ -912,7 +911,7 @@ ggml_backend_sycl_split_buffer_set_tensor(ggml_backend_buffer_t buffer,
         SYCL_CHECK(CHECK_TRY_ERROR(
             (*stream)
                 .memcpy(extra->data_device[i], buf_host, original_size)
-                .wait()));
+                ));
     }
 }
 catch (sycl::exception const &exc) {
@@ -965,7 +964,7 @@ ggml_backend_sycl_split_buffer_get_tensor(ggml_backend_buffer_t buffer,
         SYCL_CHECK(CHECK_TRY_ERROR(
             (*stream)
                 .memcpy(buf_host, extra->data_device[i], original_size)
-                .wait()));
+                ));
     }
 }
 catch (sycl::exception const &exc) {
@@ -3741,7 +3740,7 @@ static void ggml_backend_sycl_get_tensor_async(ggml_backend_t backend,
     GGML_ASSERT(buf->buft == ggml_backend_sycl_buffer_type(sycl_ctx->device) && "unsupported buffer type");
     const queue_ptr stream = sycl_ctx->stream(sycl_ctx->device, 0);
     SYCL_CHECK(CHECK_TRY_ERROR((stream)->memcpy(
-        data, (const char *)tensor->data + offset, size).wait()));
+        data, (const char *)tensor->data + offset, size)));
 }
 catch (sycl::exception const &exc) {
   std::cerr << exc.what() << "Exception caught at file:" << __FILE__
@@ -3761,7 +3760,7 @@ static bool ggml_backend_sycl_cpy_tensor_async(ggml_backend_t backend,
         */
         const queue_ptr stream = sycl_ctx->stream(sycl_ctx->device, 0);
         SYCL_CHECK(CHECK_TRY_ERROR((stream)->memcpy(
-            dst->data, src->data, ggml_nbytes(dst)).wait()));
+            dst->data, src->data, ggml_nbytes(dst))));
         return true;
     }
 
