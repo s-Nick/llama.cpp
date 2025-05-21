@@ -2900,6 +2900,7 @@ inline bool ggml_sycl_supports_mmq(enum ggml_type type) {
 inline bool ggml_sycl_supports_reorder_mul_mat_sycl(enum ggml_type type) {
     switch (type) {
         case GGML_TYPE_Q4_0:
+        case GGML_TYPE_Q6_K:
             return true;
         case GGML_TYPE_Q4_K:
             return !g_ggml_sycl_prioritize_dmmv;
@@ -2921,6 +2922,7 @@ inline bool ggml_sycl_supports_reorder_mmvq(enum ggml_type type) {
     switch (type) {
         case GGML_TYPE_Q4_0:
         case GGML_TYPE_Q4_K:
+        case GGML_TYPE_Q6_K:
             return true;
         default:
             return false;
@@ -3005,6 +3007,49 @@ static void reorder_qw_q4_k(uint8_t * data_device, size_t size, size_t offset, d
     sycl::free(tmp_buf, *stream);
 }
 
+static void reorder_qw_q6_k(uint8_t * data_device, size_t size, size_t offset, dpct::queue_ptr stream) {
+    GGML_ASSERT(size % sizeof(block_q6_K) == 0);
+    GGML_ASSERT(offset % sizeof(block_q6_K) == 0);
+
+    const int nblocks = size / sizeof(block_q6_K);
+
+    auto * tmp_buf = sycl::malloc_shared<uint8_t>(size, *stream);
+    SYCL_CHECK(CHECK_TRY_ERROR((*stream).memcpy(tmp_buf, data_device, size).wait()));
+
+    auto * ql_ptr     = data_device;
+    auto * qh_ptr = ql_ptr + QK_K/2*nblocks;
+    // putting scales after ql and qh, so getting both sizes
+    auto * scales_ptr = qh_ptr + QK_K/4 * nblocks;
+    auto * dm_ptr     = (sycl::half *) (scales_ptr + QK_K / 16 * nblocks);
+
+    stream->parallel_for(nblocks, [=](auto i) {
+        const block_q6_K * x  = (const block_q6_K *) tmp_buf;
+        const int          ib = i;
+        const uint8_t* ql = x[ib].ql;
+        const uint8_t* qh = x[ib].qh;
+
+        for (int l = 0; l < QK_K / 2; l += 2) {
+            ql_ptr[l]    = (ql[l] & 0xF) | ((ql[l + 1] & 0xF) << 4);
+            ql_ptr[l+32] = (ql[l] >> 4) | ((ql[l+1] >> 4) << 4);
+        }
+
+        for(int j = 0; j < QK_K/4; j += 4) {
+            qh_ptr[j]      = (qh[j] & 3) | (qh[j + 1] & 3) | (qh[j + 2] & 3) | (qh[j + 3] & 3);
+            qh_ptr[j + 8]  = (qh[j] & 12) | (qh[j + 1] & 12) | (qh[j + 2] & 12) | (qh[j + 3] & 12);
+            qh_ptr[j + 16] = (qh[j] & 48) | (qh[j + 1] & 48) | (qh[j + 2] & 48) | (qh[j + 3] & 48);
+            qh_ptr[j + 24] = (qh[j] & 192) | (qh[j + 1] & 192) | (qh[j + 2] & 192) | (qh[j + 3] & 192);
+        }
+
+        for (int j = 0; j < QK_K/16 ; ++j) {
+            scales_ptr[ib * j] = x[ib].scales[j];
+        }
+
+        dm_ptr[ib] = x[ib].d;
+    }).wait_and_throw();
+
+    sycl::free(tmp_buf, *stream);
+}
+
 static void reorder_qw(const ggml_tensor * src0, dpct::queue_ptr stream) {
     uint8_t * data_device = (uint8_t *) src0->data;
     size_t ncols = src0->ne[0];
@@ -3016,8 +3061,12 @@ static void reorder_qw(const ggml_tensor * src0, dpct::queue_ptr stream) {
             reorder_qw_q4_0(data_device, ncols, nrows, size, 0, stream);
             break;
         case GGML_TYPE_Q4_K:
+            printf("luigi\n");
             reorder_qw_q4_k(data_device, size, 0, stream);
             break;
+        case GGML_TYPE_Q6_K:
+            printf("mario\n");
+            reorder_qw_q6_k(data_device, size, 0, stream);
         default:
             GGML_ABORT("reorder_qw() called with unsupported type");
             break;
@@ -3033,9 +3082,11 @@ static bool should_reorder_tensor(ggml_backend_sycl_context& ctx, const ggml_ten
 
 static void opt_for_reorder(ggml_backend_sycl_context * ctx, const ggml_tensor * src0, const ggml_tensor * /* src1 */,
                             ggml_tensor * dst, mul_mat_algo mm_algorithm) {
+    /*
     if (!should_reorder_tensor(*ctx, dst)) {
         return;
     }
+    */
 
     ggml_tensor_extra_gpu * extra = static_cast<ggml_tensor_extra_gpu *>(src0->extra);
     if (!extra || extra->optimized_feature.reorder) {
@@ -3060,6 +3111,7 @@ static void opt_for_reorder(ggml_backend_sycl_context * ctx, const ggml_tensor *
             break;
     }
 
+    printf("wario\n");
     reorder_qw(src0, ctx->stream());
     extra->optimized_feature.reorder = true;  // Used to decode/dequan in next steps and avoid re-reordering
 }
@@ -3145,6 +3197,7 @@ static void ggml_sycl_mul_mat(ggml_backend_sycl_context & ctx, const ggml_tensor
     } else if (use_mul_mat_vec_q) {
         constexpr bool convert_src1_to_q8_1 = true;
         opt_for_reorder(&ctx, src0, src1, dst, mul_mat_algo::MMVQ);
+        printf("kong\n");
         ggml_sycl_op_mul_mat(ctx, src0, src1, dst, ggml_sycl_op_mul_mat_vec_q, convert_src1_to_q8_1);
     } else if (use_mul_mat_q) {
         constexpr bool convert_src1_to_q8_1 = true;

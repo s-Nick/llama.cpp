@@ -78,6 +78,22 @@ template <> struct block_q_t<GGML_TYPE_Q4_K> {
     constexpr size_t get_dm_offset(int nblocks) { return get_total_qs_bytes(nblocks) + nblocks * K_SCALE_SIZE; }
 };
 
+template <> struct block_q_t<GGML_TYPE_Q6_K> {
+    struct traits {
+        static constexpr uint32_t qk       = QK_K;
+        static constexpr uint32_t qi       = QI6_K;
+        static constexpr uint32_t qr       = QR6_K;
+        static constexpr uint32_t vdr_mmvq = 1;
+    };
+
+    static constexpr int get_block_offset(const int block_index) { return block_index * (traits::qk / traits::qr); }
+
+    static constexpr int get_d_offset(int nrows, int ncols, const int block_index) {
+        return 0;
+    }
+
+    static constexpr int block_to_q8_1_ratio() { return traits::qk / QK8_1; }
+};
 }  // namespace ggml_sycl_reordered
 
 #endif  // GGML_SYCL_QUANTS_HPP
