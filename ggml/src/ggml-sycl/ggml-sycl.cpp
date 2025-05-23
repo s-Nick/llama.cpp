@@ -3024,7 +3024,7 @@ static void reorder_qw_q6_k(uint8_t * data_device, size_t size, size_t offset, d
     sycl::half* dm_ptr     = (sycl::half *) (scales_ptr + (QK_K / 16) * nblocks);
 
     stream->parallel_for(nblocks, [=](auto i) {
-        block_q6_K * x  = (block_q6_K *) tmp_buf;
+        const block_q6_K * x  = (const block_q6_K *) tmp_buf;
         const int          ib              = i;
         /*
         for(int j =0 ; j < 208; ++j){
@@ -3038,7 +3038,6 @@ static void reorder_qw_q6_k(uint8_t * data_device, size_t size, size_t offset, d
         uint8_t *    base_ql_ptr     = ql_ptr + (QK_K / 2) * ib;
         uint8_t *    base_qh_ptr     = qh_ptr + (QK_K / 4) * ib;
         uint8_t *    base_scales_ptr = scales_ptr + (QK_K / 16) * ib;
-        //auto *       base_dm_ptr     = dm_ptr + ib;
 
         for(int j = 0; j < QK_K/2; ++j){
             base_ql_ptr[j] = ql[j];
@@ -3064,58 +3063,6 @@ static void reorder_qw_q6_k(uint8_t * data_device, size_t size, size_t offset, d
         printf("%d ", checker[i]);
     }
     printf("\n");
-
-    sycl::free(checker, *stream);
-    auto* b_checker = checker;
-    auto* b_tmp_buf = tmp_buf;
-    for (int ib = 0; ib < nblocks; ++ib) {
-        checker += ib*(QK_K/2);
-        tmp_buf += ib*((QK_K/2) + (QK_K/4) +(QK_K/16) + sizeof(sycl::half));
-        printf("\nql block %d checker:\n", ib);
-        for (int i = 0; i < (QK_K / 2); ++i) {
-            if (checker[i] != tmp_buf[i]) {
-                printf("error at %d:\n", i);
-                printf("checker: %08b\n", checker[i]);
-                printf("tmp_buf: %08b\n", tmp_buf[i]);
-            }
-        }
-        printf("\nqh block %d checker:\n", ib);
-        checker += (nblocks - ib)*(QK_K/2) + ib*(QK_K/4);
-        for (int i = 0; i < (QK_K / 4); ++i) {
-            //if (checker[i + nblocks * (QK_K / 2)] != tmp_buf[i + (QK_K / 2)]) {
-            if (checker[i] != tmp_buf[i + (QK_K / 2)]) {
-                printf("error at %d: \n", i);
-                printf("checker: %08b\n", checker[i]);
-                printf("tmp_buf: %08b\n", tmp_buf[i + (QK_K / 2)]);
-            }
-        }
-        printf("\nscales:\n");
-        checker += (nblocks-ib)*(QK_K/4) + ib*(QK_K/16);
-        for (int i = 0; i < (QK_K / 16); ++i) {
-            //if (checker[i + nblocks * (QK_K / 2) + nblocks * (QK_K / 4)] != tmp_buf[i + (QK_K / 2) + (QK_K / 4)]) {
-            if (checker[i] != tmp_buf[i + (QK_K / 2) + (QK_K / 4)]) {
-                printf("error at %d: \n", i);
-                printf("checker: %08b\n", checker[i]);
-                printf("tmp_buf: %08b\n", tmp_buf[i + (QK_K / 2) + (QK_K / 4)]);
-            }
-        }
-        printf("d:\n");
-        //auto* d_checker = (sycl::half*)(checker + (nblocks-ib)*(QK_K/16)+ib);
-        checker += (nblocks - ib) * (QK_K/16) + ib;
-        //auto test = (sycl::half)(tmp_buf[(QK_K / 2) + (QK_K / 4) + (QK_K/16)]);
-            //printf("checker: %16b\n", *checker);
-            //printf("tmp_buf: %16b\n", static_cast<sycl::half>(tmp_buf[(QK_K / 2) + (QK_K / 4) + (QK_K/16)]));
-        if (static_cast<sycl::half>(*checker) != tmp_buf[(QK_K / 2) + (QK_K / 4) + (QK_K/16)]) {
-            printf("error : \n", );
-            printf("checker: %016b\n", *checker);
-            printf("tmp_buf: %016b\n", tmp_buf[(QK_K / 2) + (QK_K / 4) + (QK_K/16)]);
-        }
-
-        printf("\n");
-        checker = b_checker;
-        tmp_buf = b_tmp_buf;
-    }
-
     */
     sycl::free(tmp_buf, *stream);
 }
@@ -3128,15 +3075,12 @@ static void reorder_qw(const ggml_tensor * src0, dpct::queue_ptr stream) {
 
     switch (src0->type) {
         case GGML_TYPE_Q4_0:
-            //printf("Q4_0 test\n");
             reorder_qw_q4_0(data_device, ncols, nrows, size, 0, stream);
             break;
         case GGML_TYPE_Q4_K:
-            //printf("luigi\n");
             reorder_qw_q4_k(data_device, size, 0, stream);
             break;
         case GGML_TYPE_Q6_K:
-            //printf("mario\n");
             reorder_qw_q6_k(data_device, size, 0, stream);
             break;
         default:

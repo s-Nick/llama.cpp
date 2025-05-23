@@ -945,11 +945,6 @@ vec_dot_q6_K_q8_1(const void *__restrict__ vbq,
     const int vh = get_int_from_uint8(bq6_K->qh, (QI6_K/4) * (iqs / (QI6_K/2)) + iqs % (QI6_K/4)) >> vh_shift;
 
     const int8_t * scales = bq6_K->scales + scale_offset;
-    /*
-    if(iqs == 0){
-      sycl::ext::oneapi::experimental::printf("vl %032b vh %032b\n", vl, vh);
-    }
-    */
 
     int    u[QR6_K];
     float d8[QR6_K];
@@ -960,7 +955,6 @@ vec_dot_q6_K_q8_1(const void *__restrict__ vbq,
         d8[i] = bq8_1[bq8_offset + 2 * i].ds[0];
     }
 
-    //float tmp_d{1};
     return vec_dot_q6_K_q8_1_impl_mmvq(vl, vh, u, scales, bq6_K->d, d8);
 }
 

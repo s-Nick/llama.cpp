@@ -815,7 +815,7 @@ static void reorder_mul_mat_vec_q6_k_q8_1_sycl(const void * vx, const void * vy,
                                                     const int nrows, dpct::queue_ptr stream) {
     GGML_ASSERT(ncols % QK_K == 0);
     const int        block_num_y   = ceil_div(nrows, GGML_SYCL_MMV_Y);
-    constexpr size_t num_subgroups = 16;
+    constexpr size_t num_subgroups = 4;
     GGML_ASSERT(block_num_y % num_subgroups == 0);
 
     //const sycl::range<3> global_size(1, 1, WARP_SIZE);
