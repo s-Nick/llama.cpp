@@ -285,9 +285,10 @@ template <> struct reorder_vec_dot_q_sycl<GGML_TYPE_Q4_0> {
         return d4 * (sumi * ds8f.x() - (8 * q4_0_traits::vdr_mmvq / q4_0_traits::qi) * ds8f.y());
     }
 
-    __dpct_inline__ float operator()(const void * __restrict__ vbq, const int ibx_offset, const int d_offset,
-                     const block_q8_1 * __restrict__ bq8_1, const int & iqs, int /* nblocks */) {
-        const uint8_t * bq4_0 = static_cast<const uint8_t *>(vbq) + ibx_offset;
+    __dpct_inline__ float operator()(const void * __restrict__ vbq, const std::pair<int, int> ibx_offset,
+                                     const int d_offset, const block_q8_1 * __restrict__ bq8_1, const int & iqs,
+                                     int /* nblocks */) {
+        const uint8_t * bq4_0 = static_cast<const uint8_t *>(vbq) + ibx_offset.first;
         const ggml_half d     = *(reinterpret_cast<const ggml_half *>(static_cast<const uint8_t *>(vbq) + d_offset));
         int             v[q4_0_traits::vdr_mmvq];
         int             u[2 * q4_0_traits::vdr_mmvq];
@@ -347,12 +348,12 @@ template <> struct reorder_vec_dot_q_sycl<GGML_TYPE_Q4_K> {
     using q4_k_block  = ggml_sycl_reordered::block_q_t<GGML_TYPE_Q4_K>;
     using q4_k_traits = typename q4_k_block::traits;
 
-    float operator()(const void * __restrict__ vbq, const int ibx_offset, const int d_offset,
+    float operator()(const void * __restrict__ vbq, const std::pair<int,int> ibx_offset, const int d_offset,
                      const block_q8_1 * __restrict__ bq8_1, const int & iqs, int nblocks) {
-        const int ib = ibx_offset / (QK_K / 2);
+        const int ib = ibx_offset.first / (QK_K / 2);
 
         const uint8_t *    base           = static_cast<const uint8_t *>(vbq);
-        const uint8_t *    qs             = base + ibx_offset;
+        const uint8_t *    qs             = base + ibx_offset.first;
         const int          total_qs_bytes = nblocks * (QK_K / 2);
         const uint8_t *    scs            = base + total_qs_bytes + ib * K_SCALE_SIZE;
         const ggml_half2 * dms            = reinterpret_cast<const ggml_half2 *>(base + d_offset);
@@ -372,8 +373,8 @@ template <> struct reorder_vec_dot_q_sycl<GGML_TYPE_Q6_K> {
     using q6_k_traits = typename q6_k_block::traits;
 
     // contiguous v/x values
-    __dpct_inline__ float vec_dot_q6_K_q8_1_impl_mmvq(const int & vl, const int & vh, const int * __restrict__ u,
-                                                      const int8_t * __restrict__ scales, const ggml_half d,
+    __dpct_inline__ float vec_dot_q6_K_q8_1_impl_mmvq(const int& vl, const int& vh, const int * __restrict__ u,
+                                                      const int8_t * __restrict__ scales, const float d,
                                                       const float * __restrict__ d8) {
         float sumf = 0.0f;
 
@@ -394,24 +395,33 @@ template <> struct reorder_vec_dot_q_sycl<GGML_TYPE_Q6_K> {
         return d * sumf;
     }
 
-    float operator()(const void * __restrict__ vbq, const int ibx_offset, const int d_offset,
+    float operator()(const void * __restrict__ vbq, const std::pair<int,int> ibx_offset, const int d_offset,
                      const block_q8_1 * __restrict__ bq8_1, const int & iqs, int nblocks) {
-        const int ib = ibx_offset / (QK_K / 2);
+        const int ib = ibx_offset.first / (QK_K / 2);
 
         const uint8_t * base           = static_cast<const uint8_t *>(vbq);
-        const uint8_t * ql             = base + ibx_offset;
-        const int       total_ql_bytes = nblocks * (QK_K / 2);
-        const uint8_t * qh             = ql + total_ql_bytes;
-        const int       total_qh_bytes = nblocks * (QK_K / 4);
-        const int8_t * scales         = reinterpret_cast<const int8_t*>(qh + total_qh_bytes);
-        const ggml_half* d              = reinterpret_cast<const ggml_half*>(scales + (QK_K / 16));
+        const uint8_t *  ql             = base + ibx_offset.first;
+        const uint8_t *  qh             = base + ibx_offset.second;// (nblocks*(QK_K/2)) + ib*(QK_K/4);
+        const int        total_qs_bytes = nblocks * (QK_K / 2) + nblocks * (QK_K / 4);
+        const int8_t *   scales         = reinterpret_cast<const int8_t *>(base + total_qs_bytes + (ib * (QK_K / 16)));
+        //const ggml_half* d              = reinterpret_cast<const ggml_half*>(base + total_qs_bytes + nblocks * (QK_K / 16)) + ib;
+        const ggml_half* d              = (const ggml_half*)(base + total_qs_bytes + nblocks * (QK_K / 16)) + ib;
         //const ggml_half2 * dms            = reinterpret_cast<const ggml_half2 *>(base + d_offset);
 
         const int bq8_offset   = 2 * QR6_K * (iqs / (QI6_K / 2)) + (iqs % (QI6_K / 2)) / (QI6_K / 4);
         const int scale_offset = (QI6_K / 4) * (iqs / (QI6_K / 2)) + (iqs % (QI6_K / 2)) / (QI6_K / 8);
+        const int vh_shift = 2 * ((iqs % (QI6_K/2)) / (QI6_K/4));
 
-        const int vl = get_int_from_uint8(ql, iqs * 2);
-        const int vh = get_int_from_uint8(qh, iqs);
+
+        /*
+        if(iqs == 0){
+          sycl::ext::oneapi::experimental::printf("ib %d ql[5] %hhu qh[5] %hhu scales[1] %hhu super-scale %hhu\n", ib, ql[5], qh[5], scales[1], *d);
+        }
+        */
+
+        const int vl = get_int_from_uint8(ql, iqs);
+        const int vh = get_int_from_uint8(qh, (QI6_K / 4) * (iqs / (QI6_K / 2)) + iqs % (QI6_K / 4)) >> vh_shift;
+
 
         const int8_t * scs = scales + scale_offset;
 
@@ -935,6 +945,11 @@ vec_dot_q6_K_q8_1(const void *__restrict__ vbq,
     const int vh = get_int_from_uint8(bq6_K->qh, (QI6_K/4) * (iqs / (QI6_K/2)) + iqs % (QI6_K/4)) >> vh_shift;
 
     const int8_t * scales = bq6_K->scales + scale_offset;
+    /*
+    if(iqs == 0){
+      sycl::ext::oneapi::experimental::printf("vl %032b vh %032b\n", vl, vh);
+    }
+    */
 
     int    u[QR6_K];
     float d8[QR6_K];
@@ -945,6 +960,7 @@ vec_dot_q6_K_q8_1(const void *__restrict__ vbq,
         d8[i] = bq8_1[bq8_offset + 2 * i].ds[0];
     }
 
+    //float tmp_d{1};
     return vec_dot_q6_K_q8_1_impl_mmvq(vl, vh, u, scales, bq6_K->d, d8);
 }
 

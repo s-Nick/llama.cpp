@@ -35,9 +35,17 @@ static void mul_mat_vec_q_reorder(const void * __restrict__ vx, const void * __r
     for (int i = sg.get_local_linear_id() / block_elements_per_subgroup; i < blocks_per_row; i += blocks_per_subgroup) {
         const int ibx       = row * blocks_per_row + i;  // x block index
         // TODO: Generalize offsets, right now only works for quantizations that don't split high and low bits
-        const int bx_offset = block_type::get_block_offset(ibx);
+        const auto bx_offset = block_type::get_block_offset(ibx, nblocks);
         const int d_offset  = block_type::get_d_offset(nrows, ncols, ibx);
+            //sycl::ext::oneapi::experimental::printf("test sub_group %d block_elements_per_subgroup %d\n", sg.get_group_linear_id(),  block_elements_per_subgroup);
+            //sycl::ext::oneapi::experimental::printf("test blocks_per_subgroup %d\n", blocks_per_subgroup);
+        /*
+        if(sg.leader(){
+            sycl::ext::oneapi::experimental::printf("sub_g_id %d ibx %d bx offset first %d second %d\n",
+                                                    sg.get_local_linear_id(), ibx, bx_offset.first, bx_offset.second);
 
+        }
+        */
         // Y block index that aligns with ibx
         const int iby = i * block_type::block_to_q8_1_ratio();
 
@@ -45,6 +53,12 @@ static void mul_mat_vec_q_reorder(const void * __restrict__ vx, const void * __r
         for (int elem = 0; elem < block_elements_per_subgroup; elem += WARP_SIZE) {
             // x block quant index when casting the quants to int
             const int iqs = elem + block_traits::vdr_mmvq * (sg.get_local_linear_id() % block_elements_per_subgroup);
+            /*
+            if (sg.get_group_linear_id() == 0) {
+                sycl::ext::oneapi::experimental::printf("test block_elements_per_subgroup %d sg_llid %d iqs %d elem %d\n",
+                                                        block_elements_per_subgroup, sg.get_local_linear_id(), iqs, elem);
+            }
+            */
 
             partial_sum += reorder_vec_dot_q_sycl()(vx, bx_offset, d_offset, &y[iby], iqs, nblocks);
         }
@@ -53,6 +67,9 @@ static void mul_mat_vec_q_reorder(const void * __restrict__ vx, const void * __r
     auto sum = sycl::reduce_over_group(nd_item.get_sub_group(), partial_sum, std::plus<>());
 
     if (sg.leader()) {
+        //sycl::ext::oneapi::experimental::printf("test sub_group %d block_elements_per_subgroup %d\n", sg.get_group_linear_id(),  block_elements_per_subgroup);
+        //sycl::ext::oneapi::experimental::printf("test blocks_per_subgroup %d\n", blocks_per_subgroup);
+        //sycl::ext::oneapi::experimental::printf("test sub_group %d qI6_K %d\n", sg.get_group_linear_id(), QI6_K);
         dst[row] = sum;
     }
 }
@@ -86,6 +103,15 @@ static void mul_mat_vec_q(const void * __restrict__ vx, const void * __restrict_
             const int iqs = elem + vdr * (item_ct1.get_local_id(2) %
                                           (qi / vdr));  // x block quant index when casting the quants to int
 
+            /*
+            if constexpr ( std::is_same_v<block_q_t, block_q6_K>) {
+                if (item_ct1.get_group_linear_id() == 0) {
+                    sycl::ext::oneapi::experimental::printf(
+                        "test block_elements_per_subgroup %d sg_llid %d iqs %d elem %d\n", (qi / vdr),
+                        item_ct1.get_group_linear_id(), iqs, elem);
+                }
+            }
+            */
             tmp += vec_dot_q_sycl(&x[ibx], &y[iby], iqs);
         }
     }
@@ -792,16 +818,23 @@ static void reorder_mul_mat_vec_q6_k_q8_1_sycl(const void * vx, const void * vy,
     constexpr size_t num_subgroups = 16;
     GGML_ASSERT(block_num_y % num_subgroups == 0);
 
-    const sycl::range<3> global_size(1, GGML_SYCL_MMV_Y, (block_num_y * WARP_SIZE));
+    //const sycl::range<3> global_size(1, 1, WARP_SIZE);
+    //const sycl::range<3> workgroup_size(1, 1, WARP_SIZE);
+
+    const sycl::range<3> global_size(1, GGML_SYCL_MMV_Y, block_num_y * WARP_SIZE);
     const sycl::range<3> workgroup_size(1, GGML_SYCL_MMV_Y, num_subgroups * WARP_SIZE);
 
+    //const sycl::range<3> global_size(1, GGML_SYCL_MMV_Y, (block_num_y));
+    //const sycl::range<3> workgroup_size(1, GGML_SYCL_MMV_Y, WARP_SIZE);
+
+    //printf("%d in %s\n", __LINE__, __FILE__);
     stream->submit([&](sycl::handler & cgh) {
         cgh.parallel_for(sycl::nd_range<3>(global_size, workgroup_size),
                          [=](sycl::nd_item<3> nd_item) [[sycl::reqd_sub_group_size(WARP_SIZE)]] {
                              mul_mat_vec_q_reorder<reorder_vec_dot_q_sycl<GGML_TYPE_Q6_K>>(vx, vy, dst, ncols, nrows,
                                                                                            nd_item);
                          });
-    });
+    }).wait();
 }
 static void mul_mat_vec_q6_K_q8_1_sycl(const void *vx, const void *vy,
                                        float *dst, const int ncols,
@@ -811,6 +844,8 @@ static void mul_mat_vec_q6_K_q8_1_sycl(const void *vx, const void *vy,
     const int block_num_y = (nrows + GGML_SYCL_MMV_Y - 1) / GGML_SYCL_MMV_Y;
     const sycl::range<3> block_nums(1, 1, block_num_y);
     const sycl::range<3> block_dims(1, GGML_SYCL_MMV_Y, WARP_SIZE);
+    //const sycl::range<3> block_nums(1, 1, WARP_SIZE);
+    //const sycl::range<3> block_dims(1, 1, WARP_SIZE);
     {
 
         stream->submit([&](sycl::handler &cgh) {
@@ -1089,6 +1124,7 @@ void ggml_sycl_op_mul_mat_vec_q(ggml_backend_sycl_context & ctx, const ggml_tens
                 if ((ggml_tensor_extra_gpu *) dst->src[0]->extra &&
                     ((ggml_tensor_extra_gpu *) dst->src[0]->extra)->optimized_feature.reorder) {
                     GGML_SYCL_DEBUG("Calling reorder_mul_mat_vec_q6_k_q8_1_sycl\n");
+                    //printf("%d in %s\n", __LINE__, __FILE__);
                     reorder_mul_mat_vec_q6_k_q8_1_sycl(src0_dd_i, src1_ddq_i_bs, dst_dd_i_bs, ne00, row_diff, stream);
                 } else {
                     GGML_SYCL_DEBUG("Calling mul_mat_vec_q6_k_q8_1_sycl\n");

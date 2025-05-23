@@ -352,7 +352,7 @@ ggml_backend_sycl_buffer_init_tensor(ggml_backend_buffer_t buffer,
         assert(tensor->view_src->buffer->buft == buffer->buft);
         return GGML_STATUS_SUCCESS;
     }
-    if ((tensor->type == GGML_TYPE_Q4_0 || tensor->type == GGML_TYPE_Q4_K) && !g_ggml_sycl_disable_optimize) {
+    if ((tensor->type == GGML_TYPE_Q4_0 || tensor->type == GGML_TYPE_Q4_K || tensor->type == GGML_TYPE_Q6_K) && !g_ggml_sycl_disable_optimize) {
         ggml_tensor_extra_gpu * extra = new ggml_tensor_extra_gpu{};
         tensor->extra                 = extra;
         ctx->tensor_extras.push_back(extra);  //used to release it when destroy ctx.
@@ -2541,6 +2541,7 @@ static void ggml_sycl_op_mul_mat(ggml_backend_sycl_context & ctx, const ggml_ten
                     src1_padded_col_size = (i0 * ne11 + src1_col_0) * ne10;
                 }
                 // do the computation
+                //printf("%d in %s\n", __LINE__, __FILE__);
                 SYCL_CHECK(CHECK_TRY_ERROR(op(ctx, src0, src1, dst, src0_dd_i, src1_ddf_i, src1_ddq_i, dst_dd_i,
                     dev[i].row_low, dev[i].row_high, src1_ncols, src1_padded_col_size, stream)));
                 /*
@@ -3017,36 +3018,105 @@ static void reorder_qw_q6_k(uint8_t * data_device, size_t size, size_t offset, d
     SYCL_CHECK(CHECK_TRY_ERROR((*stream).memcpy(tmp_buf, data_device, size).wait()));
 
     auto * ql_ptr     = data_device;
-    auto * qh_ptr = ql_ptr + QK_K/2*nblocks;
+    auto * qh_ptr = ql_ptr + (QK_K/2)*nblocks;
     // putting scales after ql and qh, so getting both sizes
-    auto * scales_ptr = qh_ptr + QK_K/4 * nblocks;
-    auto * dm_ptr     = (sycl::half *) (scales_ptr + QK_K / 16 * nblocks);
+    auto * scales_ptr = qh_ptr + (QK_K/4) * nblocks;
+    sycl::half* dm_ptr     = (sycl::half *) (scales_ptr + (QK_K / 16) * nblocks);
 
     stream->parallel_for(nblocks, [=](auto i) {
-        const block_q6_K * x  = (const block_q6_K *) tmp_buf;
-        const int          ib = i;
-        const uint8_t* ql = x[ib].ql;
-        const uint8_t* qh = x[ib].qh;
-
-        for (int l = 0; l < QK_K / 2; l += 2) {
-            ql_ptr[l]    = (ql[l] & 0xF) | ((ql[l + 1] & 0xF) << 4);
-            ql_ptr[l+32] = (ql[l] >> 4) | ((ql[l+1] >> 4) << 4);
+        block_q6_K * x  = (block_q6_K *) tmp_buf;
+        const int          ib              = i;
+        /*
+        for(int j =0 ; j < 208; ++j){
+            x[ib].ql[j] = j;
         }
+        x[ib].d = (sycl::half)(1);
+        */
 
-        for(int j = 0; j < QK_K/4; j += 4) {
-            qh_ptr[j]      = (qh[j] & 3) | (qh[j + 1] & 3) | (qh[j + 2] & 3) | (qh[j + 3] & 3);
-            qh_ptr[j + 8]  = (qh[j] & 12) | (qh[j + 1] & 12) | (qh[j + 2] & 12) | (qh[j + 3] & 12);
-            qh_ptr[j + 16] = (qh[j] & 48) | (qh[j + 1] & 48) | (qh[j + 2] & 48) | (qh[j + 3] & 48);
-            qh_ptr[j + 24] = (qh[j] & 192) | (qh[j + 1] & 192) | (qh[j + 2] & 192) | (qh[j + 3] & 192);
+        const uint8_t *    ql              = x[ib].ql;
+        const uint8_t *    qh              = x[ib].qh;
+        uint8_t *    base_ql_ptr     = ql_ptr + (QK_K / 2) * ib;
+        uint8_t *    base_qh_ptr     = qh_ptr + (QK_K / 4) * ib;
+        uint8_t *    base_scales_ptr = scales_ptr + (QK_K / 16) * ib;
+        //auto *       base_dm_ptr     = dm_ptr + ib;
+
+        for(int j = 0; j < QK_K/2; ++j){
+            base_ql_ptr[j] = ql[j];
+        }
+        for(int j = 0; j < QK_K/4; ++j){
+            base_qh_ptr[j] = qh[j];
         }
 
         for (int j = 0; j < QK_K/16 ; ++j) {
-            scales_ptr[ib * j] = x[ib].scales[j];
+            base_scales_ptr[j] = x[ib].scales[j];
         }
 
-        dm_ptr[ib] = x[ib].d;
-    }).wait_and_throw();
 
+        dm_ptr[ib] = x[ib].d;
+
+        //sycl::ext::oneapi::experimental::printf("\nfrom ib: %d block scale \nreorder %b\norigin  %b",ib, *(dm_ptr+ib), x[ib].d);
+    }).wait_and_throw();
+    /*
+    auto * checker = sycl::malloc_shared<uint8_t>(size, *stream);
+    SYCL_CHECK(CHECK_TRY_ERROR((*stream).memcpy(checker, data_device, size).wait()));
+    printf("\n everything\n");
+    for (int i = 0; i < size; ++i) {
+        printf("%d ", checker[i]);
+    }
+    printf("\n");
+
+    sycl::free(checker, *stream);
+    auto* b_checker = checker;
+    auto* b_tmp_buf = tmp_buf;
+    for (int ib = 0; ib < nblocks; ++ib) {
+        checker += ib*(QK_K/2);
+        tmp_buf += ib*((QK_K/2) + (QK_K/4) +(QK_K/16) + sizeof(sycl::half));
+        printf("\nql block %d checker:\n", ib);
+        for (int i = 0; i < (QK_K / 2); ++i) {
+            if (checker[i] != tmp_buf[i]) {
+                printf("error at %d:\n", i);
+                printf("checker: %08b\n", checker[i]);
+                printf("tmp_buf: %08b\n", tmp_buf[i]);
+            }
+        }
+        printf("\nqh block %d checker:\n", ib);
+        checker += (nblocks - ib)*(QK_K/2) + ib*(QK_K/4);
+        for (int i = 0; i < (QK_K / 4); ++i) {
+            //if (checker[i + nblocks * (QK_K / 2)] != tmp_buf[i + (QK_K / 2)]) {
+            if (checker[i] != tmp_buf[i + (QK_K / 2)]) {
+                printf("error at %d: \n", i);
+                printf("checker: %08b\n", checker[i]);
+                printf("tmp_buf: %08b\n", tmp_buf[i + (QK_K / 2)]);
+            }
+        }
+        printf("\nscales:\n");
+        checker += (nblocks-ib)*(QK_K/4) + ib*(QK_K/16);
+        for (int i = 0; i < (QK_K / 16); ++i) {
+            //if (checker[i + nblocks * (QK_K / 2) + nblocks * (QK_K / 4)] != tmp_buf[i + (QK_K / 2) + (QK_K / 4)]) {
+            if (checker[i] != tmp_buf[i + (QK_K / 2) + (QK_K / 4)]) {
+                printf("error at %d: \n", i);
+                printf("checker: %08b\n", checker[i]);
+                printf("tmp_buf: %08b\n", tmp_buf[i + (QK_K / 2) + (QK_K / 4)]);
+            }
+        }
+        printf("d:\n");
+        //auto* d_checker = (sycl::half*)(checker + (nblocks-ib)*(QK_K/16)+ib);
+        checker += (nblocks - ib) * (QK_K/16) + ib;
+        //auto test = (sycl::half)(tmp_buf[(QK_K / 2) + (QK_K / 4) + (QK_K/16)]);
+            //printf("checker: %16b\n", *checker);
+            //printf("tmp_buf: %16b\n", static_cast<sycl::half>(tmp_buf[(QK_K / 2) + (QK_K / 4) + (QK_K/16)]));
+        if (static_cast<sycl::half>(*checker) != tmp_buf[(QK_K / 2) + (QK_K / 4) + (QK_K/16)]) {
+            printf("error : \n", );
+            printf("checker: %016b\n", *checker);
+            printf("tmp_buf: %016b\n", tmp_buf[(QK_K / 2) + (QK_K / 4) + (QK_K/16)]);
+        }
+
+        printf("\n");
+        checker = b_checker;
+        tmp_buf = b_tmp_buf;
+    }
+
+    */
     sycl::free(tmp_buf, *stream);
 }
 
@@ -3058,15 +3128,17 @@ static void reorder_qw(const ggml_tensor * src0, dpct::queue_ptr stream) {
 
     switch (src0->type) {
         case GGML_TYPE_Q4_0:
+            //printf("Q4_0 test\n");
             reorder_qw_q4_0(data_device, ncols, nrows, size, 0, stream);
             break;
         case GGML_TYPE_Q4_K:
-            printf("luigi\n");
+            //printf("luigi\n");
             reorder_qw_q4_k(data_device, size, 0, stream);
             break;
         case GGML_TYPE_Q6_K:
-            printf("mario\n");
+            //printf("mario\n");
             reorder_qw_q6_k(data_device, size, 0, stream);
+            break;
         default:
             GGML_ABORT("reorder_qw() called with unsupported type");
             break;
@@ -3082,14 +3154,13 @@ static bool should_reorder_tensor(ggml_backend_sycl_context& ctx, const ggml_ten
 
 static void opt_for_reorder(ggml_backend_sycl_context * ctx, const ggml_tensor * src0, const ggml_tensor * /* src1 */,
                             ggml_tensor * dst, mul_mat_algo mm_algorithm) {
-    /*
     if (!should_reorder_tensor(*ctx, dst)) {
         return;
     }
-    */
 
     ggml_tensor_extra_gpu * extra = static_cast<ggml_tensor_extra_gpu *>(src0->extra);
     if (!extra || extra->optimized_feature.reorder) {
+                //printf("\n%d in %s\n", __LINE__, __FILE__);
         return;  // Skip permutations and already reordered tensors
     }
 
@@ -3111,7 +3182,7 @@ static void opt_for_reorder(ggml_backend_sycl_context * ctx, const ggml_tensor *
             break;
     }
 
-    printf("wario\n");
+    //printf("wario\n");
     reorder_qw(src0, ctx->stream());
     extra->optimized_feature.reorder = true;  // Used to decode/dequan in next steps and avoid re-reordering
 }
@@ -3197,7 +3268,7 @@ static void ggml_sycl_mul_mat(ggml_backend_sycl_context & ctx, const ggml_tensor
     } else if (use_mul_mat_vec_q) {
         constexpr bool convert_src1_to_q8_1 = true;
         opt_for_reorder(&ctx, src0, src1, dst, mul_mat_algo::MMVQ);
-        printf("kong\n");
+        //printf("kong\n");
         ggml_sycl_op_mul_mat(ctx, src0, src1, dst, ggml_sycl_op_mul_mat_vec_q, convert_src1_to_q8_1);
     } else if (use_mul_mat_q) {
         constexpr bool convert_src1_to_q8_1 = true;

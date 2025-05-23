@@ -14,11 +14,12 @@
 #ifndef GGML_SYCL_QUANTS_HPP
 #define GGML_SYCL_QUANTS_HPP
 
+#include <utility>
+
 #include "ggml-common.h"
 #include "ggml.h"
 
 namespace ggml_sycl_reordered {
-
 
 // The reordered block moves quants (qs) and  scales(d) to two
 // uniform regions of memory that is contiguous in the same tensor.
@@ -31,7 +32,6 @@ namespace ggml_sycl_reordered {
 // Aligment relies on the allocated size of qs
 
 template <ggml_type type> struct block_q_t;
-
 
 // qk number of weights / quants in a block
 // qr number of weights in a byte (described as 'before dequantization')
@@ -47,7 +47,9 @@ template <> struct block_q_t<GGML_TYPE_Q4_0> {
         static constexpr uint32_t vdr_mmvq = 2;
     };
 
-    static constexpr int get_block_offset(const int block_index) { return block_index * (traits::qk / traits::qr); }
+    static constexpr std::pair<int,int> get_block_offset(const int block_index, const int n_blocks) {
+        return { block_index * (traits::qk / traits::qr), 0 };
+    }
 
     static constexpr int get_d_offset(int nrows, int ncols, const int block_index) {
         return (ncols / traits::qr * nrows) + block_index * sizeof(ggml_half);
@@ -64,7 +66,9 @@ template <> struct block_q_t<GGML_TYPE_Q4_K> {
         static constexpr uint32_t vdr_mmvq = 2;
     };
 
-    static constexpr int get_block_offset(const int block_index) { return block_index * (traits::qk / traits::qr); }
+    static constexpr std::pair<int, int> get_block_offset(const int block_index, const int n_blocks) {
+        return { block_index * (traits::qk / traits::qr), 0 };
+    }
 
     static constexpr int get_d_offset(int nrows, int ncols, const int block_index) {
         auto nblocks = (nrows * (ncols / traits::qk));
@@ -86,11 +90,16 @@ template <> struct block_q_t<GGML_TYPE_Q6_K> {
         static constexpr uint32_t vdr_mmvq = 1;
     };
 
-    static constexpr int get_block_offset(const int block_index) { return block_index * (traits::qk / traits::qr); }
-
-    static constexpr int get_d_offset(int nrows, int ncols, const int block_index) {
-        return 0;
+    // it must be a pair because in splitted quantization there are all lows part and high parts afterward.
+    static constexpr std::pair<int, int> get_block_offset(const int block_index, const int n_blocks) {
+        // I think qk/qr it's just QK_K/2 as in the struct
+        auto low_bits_index  = block_index * (traits::qk / traits::qr);
+        // the index of high bits it's after all low bits
+        auto high_bits_index = n_blocks * (QK_K / 2) + (block_index * (QK_K / 4));
+        return { low_bits_index, high_bits_index };
     }
+
+    static constexpr int get_d_offset(int nrows, int ncols, const int block_index) { return 0; }
 
     static constexpr int block_to_q8_1_ratio() { return traits::qk / QK8_1; }
 };

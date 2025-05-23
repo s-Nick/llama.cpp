@@ -539,6 +539,37 @@ static void dequantize_block_q6_K(const void * __restrict__ vx, dst_t * __restri
 }
 
 template<typename dst_t>
+static void dequantize_block_q6_K_reorder(const void * __restrict__ vx, dst_t * __restrict__ yy,
+                                  const sycl::nd_item<1> &item_ct1, int64_t n_blocks) {
+
+    const int64_t ib = item_ct1.get_group(0);
+    const auto tid = item_ct1.get_local_id(0);
+    //const block_q6_K * x = (const block_q6_K *) vx;
+    // assume 64 threads - this is very slightly better than the one below
+    const uint8_t *    base_ptr           = static_cast<const uint8_t *>(vx);
+    const auto         ql_offset          = ib * (QK_K / 2);
+    const auto         qh_offset          = (QK_K / 2) * n_blocks + (QK_K / 4) * ib;
+    const auto         base_scales_offset = (QK_K / 2) * n_blocks + (QK_K / 4) * n_blocks + (QK_K / 16) * ib;
+    const auto         base_d_offset = ((QK_K / 2) + (QK_K / 4) + (QK_K / 16)) * n_blocks * ib;
+    const uint8_t* ql_ptr = base_ptr + ql_offset;
+    const uint8_t* qh_ptr = base_ptr + qh_offset;
+    const uint8_t* scales_ptr = base_ptr + base_scales_offset;
+    const ggml_half d = static_cast<const ggml_half>(*(base_ptr + base_d_offset+ ib));
+
+    dst_t* y = yy + QK_K*ib;
+
+    for(int i = tid; i < QK_K/4; i += 32){
+        const auto output_index = i * 4;
+        const auto scale_offset = output_index % 16;
+        y[output_index]         = d * scales_ptr[scale_offset] * (((ql_ptr[i * 2] & 0xF) | (qh_ptr[i] & 0x3)) - 32);
+        y[output_index + 1]     = d * scales_ptr[scale_offset] * (((ql_ptr[i * 2] & 0xF0) | (qh_ptr[i] & 0xC)) - 32);
+        y[output_index + 2] = d * scales_ptr[scale_offset] * (((ql_ptr[i*2+1] & 0xF) | (qh_ptr[i] & 0x30)) -32);
+        y[output_index + 3] = d * scales_ptr[scale_offset] * (((ql_ptr[i*2+1] & 0xF0) | (qh_ptr[i] & 0xC0)) -32);
+    }
+
+}
+
+template<typename dst_t>
 static void dequantize_block_iq2_xxs(const void * __restrict__ vx, dst_t * __restrict__ yy,
                                      const sycl::nd_item<3> &item_ct1,
                                      const uint64_t *iq2xxs_grid_ptr,
