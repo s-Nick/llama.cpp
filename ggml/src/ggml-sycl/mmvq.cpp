@@ -834,7 +834,7 @@ static void reorder_mul_mat_vec_q6_k_q8_1_sycl(const void * vx, const void * vy,
                              mul_mat_vec_q_reorder<reorder_vec_dot_q_sycl<GGML_TYPE_Q6_K>>(vx, vy, dst, ncols, nrows,
                                                                                            nd_item);
                          });
-    }).wait();
+    });
 }
 static void mul_mat_vec_q6_K_q8_1_sycl(const void *vx, const void *vy,
                                        float *dst, const int ncols,
