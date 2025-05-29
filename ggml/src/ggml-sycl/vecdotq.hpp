@@ -268,7 +268,6 @@ template <> struct reorder_vec_dot_q_sycl<GGML_TYPE_Q4_0> {
     __dpct_inline__ float vec_dot_q4_0_q8_1_impl(const int * v, const int * u, const float & d4, const sycl::half2 & ds8) {
         int sumi = 0;
 
-#pragma unroll
         for (size_t i = 0; i < q4_0_traits::vdr_mmvq; ++i) {
             const int vi0 = (v[i] >> 0) & 0x0F0F0F0F;
             const int vi1 = (v[i] >> 4) & 0x0F0F0F0F;
@@ -291,8 +290,6 @@ template <> struct reorder_vec_dot_q_sycl<GGML_TYPE_Q4_0> {
         const ggml_half d = *(reinterpret_cast<const ggml_half *>(static_cast<const uint8_t *>(vbq) + d_offset.first));
         int             v[q4_0_traits::vdr_mmvq];
         int             u[2 * q4_0_traits::vdr_mmvq];
-
-#pragma unroll
 
         for (size_t i = 0; i < q4_0_traits::vdr_mmvq; ++i) {
             v[i]         = get_int_from_uint8(bq4_0, iqs + i);
@@ -378,7 +375,6 @@ template <> struct reorder_vec_dot_q_sycl<GGML_TYPE_Q6_K> {
                                                       const float * __restrict__ d8) {
         float sumf = 0.0f;
 
-#pragma unroll
         for (int i = 0; i < QR6_K; ++i) {
             const int sc = scales[4 * i];
 
@@ -418,7 +414,6 @@ template <> struct reorder_vec_dot_q_sycl<GGML_TYPE_Q6_K> {
         int   u[QR6_K];
         float d8[QR6_K];
 
-#pragma unroll
         for (int i = 0; i < QR6_K; ++i) {
             u[i]  = get_int_from_int8_aligned(bq8_1[bq8_offset + 2 * i].qs, iqs % QI8_1);
             d8[i] = bq8_1[bq8_offset + 2 * i].ds[0];
