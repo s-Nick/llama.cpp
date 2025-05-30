@@ -291,6 +291,7 @@ template <> struct reorder_vec_dot_q_sycl<GGML_TYPE_Q4_0> {
         int             v[q4_0_traits::vdr_mmvq];
         int             u[2 * q4_0_traits::vdr_mmvq];
 
+#pragma unroll
         for (size_t i = 0; i < q4_0_traits::vdr_mmvq; ++i) {
             v[i]         = get_int_from_uint8(bq4_0, iqs + i);
             u[2 * i + 0] = get_int_from_int8_aligned(bq8_1->qs, iqs + i);
