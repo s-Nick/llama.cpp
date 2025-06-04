@@ -32,7 +32,7 @@ static void mul_mat_vec_q_reorder(const void * __restrict__ vx, const void * __r
     float partial_sum = 0.0f;
     for (int i = sg.get_local_linear_id() / block_elements_per_subgroup; i < blocks_per_row; i += blocks_per_subgroup) {
         const int ibx       = row * blocks_per_row + i;  // x block index
-        // TODO: Generalize offsets, right now only works for quantizations that don't split high and low bits
+
         const auto         bx_offset      = block_type::get_block_offset(ibx, nblocks);
         const auto         d_offset       = block_type::get_d_offset(nrows, ncols, ibx);
         // Y block index that aligns with ibx

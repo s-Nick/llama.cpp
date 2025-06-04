@@ -3106,7 +3106,6 @@ static void reorder_qw_q6_k(uint8_t * data_device, size_t size, size_t offset, d
 
     auto *       ql_ptr     = data_device;
     auto *       qh_ptr     = ql_ptr + (QK_K / 2) * nblocks;
-    // scales are after all quants' bits so adding both to get correct offset
     auto *       scales_ptr = qh_ptr + (QK_K / 4) * nblocks;
     sycl::half * dm_ptr     = (sycl::half *) (scales_ptr + (QK_K / 16) * nblocks);
 

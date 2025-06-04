@@ -403,7 +403,6 @@ template <> struct reorder_vec_dot_q_sycl<GGML_TYPE_Q6_K> {
     using q6_k_block  = ggml_sycl_reordered::block_q_t<GGML_TYPE_Q6_K>;
     using q6_k_traits = typename q6_k_block::traits;
 
-    // contiguous v/x values
     __dpct_inline__ float vec_dot_q6_K_q8_1_impl_mmvq(const int & vl, const int & vh, const int * __restrict__ u,
                                                       const int8_t * __restrict__ scales, const float d,
                                                       const float * __restrict__ d8) {
