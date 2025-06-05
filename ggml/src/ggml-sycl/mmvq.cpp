@@ -31,7 +31,7 @@ static void mul_mat_vec_q_reorder(const void * __restrict__ vx, const void * __r
 
     float partial_sum = 0.0f;
     for (int i = sg.get_local_linear_id() / block_elements_per_subgroup; i < blocks_per_row; i += blocks_per_subgroup) {
-        const int ibx       = row * blocks_per_row + i;  // x block index
+        const int ibx = row * blocks_per_row + i;  // x block index
 
         const auto         bx_offset      = block_type::get_block_offset(ibx, nblocks);
         const auto         d_offset       = block_type::get_d_offset(nrows, ncols, ibx);
@@ -45,7 +45,7 @@ static void mul_mat_vec_q_reorder(const void * __restrict__ vx, const void * __r
             // x block quant index when casting the quants to int
             const int iqs = elem + block_traits::vdr_mmvq * (sg.get_local_linear_id() % block_elements_per_subgroup);
 
-            partial_sum += reorder_vec_dot_q_sycl()(vx, bx_offset, d_offset, q8_1_quant_ptr, q8_1_ds_ptr, iqs, nblocks);
+            partial_sum += reorder_vec_dot_q_sycl()(vx, bx_offset, d_offset, q8_1_quant_ptr, q8_1_ds_ptr, iqs);
         }
     }
 

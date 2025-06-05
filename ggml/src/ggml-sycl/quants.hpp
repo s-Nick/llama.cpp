@@ -72,14 +72,13 @@ template <> struct block_q_t<GGML_TYPE_Q4_K> {
 
     static constexpr std::pair<int, int> get_d_offset(int nrows, int ncols, const int block_index) {
         auto nblocks = (nrows * (ncols / traits::qk));
-        return { (nblocks * QK_K / 2) + (nblocks * K_SCALE_SIZE) + (block_index * sizeof(ggml_half2)), 0 };
+        return { nblocks * (QK_K / 2),
+                 (nblocks * QK_K / 2) + (nblocks * K_SCALE_SIZE) + (block_index * sizeof(ggml_half2)) };
     }
 
     static constexpr int block_to_q8_1_ratio() { return traits::qk / QK8_1; }
 
     constexpr size_t get_total_qs_bytes(int nblocks) { return nblocks * QK_K / 2; }
-
-    constexpr int get_dm_offset(int nblocks) { return get_total_qs_bytes(nblocks) + nblocks * K_SCALE_SIZE; }
 };
 
 template <> struct block_q_t<GGML_TYPE_Q6_K> {
