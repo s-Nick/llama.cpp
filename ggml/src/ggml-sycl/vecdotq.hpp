@@ -402,7 +402,7 @@ template <> struct reorder_vec_dot_q_sycl<GGML_TYPE_Q6_K> {
     using q6_k_block  = ggml_sycl_reordered::block_q_t<GGML_TYPE_Q6_K>;
     using q6_k_traits = typename q6_k_block::traits;
 
-    __dpct_inline__ float vec_dot_q6_K_q8_1_impl_mmvq(const int & vl, const int & vh, const int * __restrict__ u,
+    __dpct_inline__ float vec_dot_q6_K_q8_1_impl_mmvq(const int vl, const int vh, const int * __restrict__ u,
                                                       const int8_t * __restrict__ scales, const float d,
                                                       const float * __restrict__ d8) {
         float sumf = 0.0f;
@@ -424,9 +424,9 @@ template <> struct reorder_vec_dot_q_sycl<GGML_TYPE_Q6_K> {
         return d * sumf;
     }
 
-    float operator()(const void * __restrict__ vbq, const std::pair<int, int> ibx_offset,
+    __dpct_inline__ float operator()(const void * __restrict__ vbq, const std::pair<int, int> ibx_offset,
                      const std::pair<int, int> d_offset, const int8_t * q8_1_quant_ptr, const sycl::half2 * q8_1_ds,
-                     const int & iqs) {
+                     const int iqs) {
         const int ib = ibx_offset.first / (QK_K / 2);
 
         const uint8_t *   base   = static_cast<const uint8_t *>(vbq);
