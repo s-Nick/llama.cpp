@@ -118,7 +118,7 @@ static void get_rows_sycl(ggml_backend_sycl_context & ctx, const ggml_tensor *sr
 
     GGML_ASSERT(ne00 % 2 == 0);
 
-    stream->parallel_for(sycl::nd_range<3>(block_nums * block_dims, block_dims),
+    syclex::nd_launch(*stream,sycl::nd_range<3>(block_nums * block_dims, block_dims),
                          [=](sycl::nd_item<3> item_ct1) {
                              k_get_rows<qk, qr, dq>(
                                  src0_dd, src1_dd, dst_dd, ne00, ne12, s1, s2,
@@ -156,7 +156,7 @@ static void get_rows_sycl_float(ggml_backend_sycl_context & ctx, const ggml_tens
         dpct::has_capability_or_fail(stream->get_device(),
                                      {sycl::aspect::fp16});
 
-        stream->parallel_for(
+        syclex::nd_launch(*stream,
             sycl::nd_range<3>(block_nums * block_dims, block_dims),
             [=](sycl::nd_item<3> item_ct1) {
                 k_get_rows_float(src0_dd, src1_dd, dst_dd, ne00, ne12, s1, s2,

@@ -59,7 +59,7 @@ static void conv_transpose_1d_f32_f32_sycl(
     const int num_blocks = (output_size + SYCL_CONV_TRANPOSE_1D_BLOCK_SIZE - 1) / SYCL_CONV_TRANPOSE_1D_BLOCK_SIZE;
     const sycl::range<3> block_dims(1, 1, SYCL_CONV_TRANPOSE_1D_BLOCK_SIZE);
     const sycl::range<3> block_nums(1, 1, num_blocks);
-    stream->parallel_for(
+    syclex::nd_launch(*stream,
         sycl::nd_range<3>(
             block_nums * block_dims, block_dims),
         [=](sycl::nd_item<3> item_ct1) {

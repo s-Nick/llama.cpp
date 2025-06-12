@@ -208,7 +208,7 @@ static void convert_mul_mat_vec_f16_sycl(const void *vx, const dfloat *y,
         dpct::has_capability_or_fail(stream->get_device(),
                                      {sycl::aspect::fp16});
 
-        stream->parallel_for(
+        syclex::nd_launch(*stream,
             sycl::nd_range<3>(block_nums * block_dims, block_dims),
             [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(WARP_SIZE)]] {
                 dequantize_mul_mat_vec<1, 1, convert_f16>(vx, y, dst, ncols,
@@ -877,7 +877,7 @@ static void dequantize_mul_mat_vec_q4_0_sycl_reorder(const void *vx, const dfloa
         dpct::has_capability_or_fail(stream->get_device(),
                                      {sycl::aspect::fp16});
 
-        stream->parallel_for(
+        syclex::nd_launch(*stream,
             sycl::nd_range<3>(block_nums * block_dims, block_dims),
             [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(WARP_SIZE)]] {
                 dequantize_mul_mat_vec_reorder<QK4_0, QR4_0, dequantize_q4_0_reorder>(
@@ -900,7 +900,7 @@ static void dequantize_mul_mat_vec_q4_0_sycl(const void *vx, const dfloat *y,
         dpct::has_capability_or_fail(stream->get_device(),
                                      {sycl::aspect::fp16});
 
-        stream->parallel_for(
+        syclex::nd_launch(*stream,
             sycl::nd_range<3>(block_nums * block_dims, block_dims),
             [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(WARP_SIZE)]] {
                 dequantize_mul_mat_vec<QK4_0, QR4_0, dequantize_q4_0>(
@@ -921,7 +921,7 @@ static void dequantize_mul_mat_vec_q4_1_sycl(const void *vx, const dfloat *y,
         dpct::has_capability_or_fail(stream->get_device(),
                                      {sycl::aspect::fp16});
 
-        stream->parallel_for(
+        syclex::nd_launch(*stream,
             sycl::nd_range<3>(block_nums * block_dims, block_dims),
             [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(WARP_SIZE)]] {
                 dequantize_mul_mat_vec<QK4_1, QR4_1, dequantize_q4_1>(
@@ -942,7 +942,7 @@ static void dequantize_mul_mat_vec_q5_0_sycl(const void *vx, const dfloat *y,
         dpct::has_capability_or_fail(stream->get_device(),
                                      {sycl::aspect::fp16});
 
-        stream->parallel_for(
+        syclex::nd_launch(*stream,
             sycl::nd_range<3>(block_nums * block_dims, block_dims),
             [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(WARP_SIZE)]] {
                 dequantize_mul_mat_vec<QK5_0, QR5_0, dequantize_q5_0>(
@@ -963,7 +963,7 @@ static void dequantize_mul_mat_vec_q5_1_sycl(const void *vx, const dfloat *y,
         dpct::has_capability_or_fail(stream->get_device(),
                                      {sycl::aspect::fp16});
 
-        stream->parallel_for(
+        syclex::nd_launch(*stream,
             sycl::nd_range<3>(block_nums * block_dims, block_dims),
             [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(WARP_SIZE)]] {
                 dequantize_mul_mat_vec<QK5_1, QR5_1, dequantize_q5_1>(
@@ -984,7 +984,7 @@ static void dequantize_mul_mat_vec_q8_0_sycl(const void *vx, const dfloat *y,
         dpct::has_capability_or_fail(stream->get_device(),
                                      {sycl::aspect::fp16});
 
-        stream->parallel_for(
+        syclex::nd_launch(*stream,
             sycl::nd_range<3>(block_nums * block_dims, block_dims),
             [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(WARP_SIZE)]] {
                 dequantize_mul_mat_vec<QK8_0, QR8_0, dequantize_q8_0>(
@@ -1002,7 +1002,7 @@ static void dequantize_mul_mat_vec_q2_K_sycl(const void *vx, const float *y,
     const int block_num_y = (nrows + ny - 1) / ny;
     const sycl::range<3> block_nums(1, 1, block_num_y);
     const sycl::range<3> block_dims(1, ny, QK_WARP_SIZE);
-    stream->parallel_for(
+    syclex::nd_launch(*stream,
         sycl::nd_range<3>(block_nums * block_dims, block_dims),
         [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(QK_WARP_SIZE)]] {
             dequantize_mul_mat_vec_q2_k(vx, y, dst, ncols, nrows, item_ct1);
@@ -1018,7 +1018,7 @@ static void dequantize_mul_mat_vec_q3_K_sycl(const void *vx, const float *y,
     const int block_num_y = (nrows + ny - 1) / ny;
     const sycl::range<3> block_nums(1, 1, block_num_y);
     const sycl::range<3> block_dims(1, ny, QK_WARP_SIZE);
-    stream->parallel_for(
+    syclex::nd_launch(*stream,
         sycl::nd_range<3>(block_nums * block_dims, block_dims),
         [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(QK_WARP_SIZE)]] {
             dequantize_mul_mat_vec_q3_k(vx, y, dst, ncols, nrows, item_ct1);
@@ -1034,7 +1034,7 @@ static void dequantize_mul_mat_vec_q4_K_sycl(const void *vx, const float *y,
     const int block_num_y = (nrows + ny - 1) / ny;
     const sycl::range<3> block_nums(1, 1, block_num_y);
     const sycl::range<3> block_dims(1, ny, QK_WARP_SIZE);
-    stream->parallel_for(
+    syclex::nd_launch(*stream,
         sycl::nd_range<3>(block_nums * block_dims, block_dims),
         [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(QK_WARP_SIZE)]] {
             dequantize_mul_mat_vec_q4_k(vx, y, dst, ncols, nrows, item_ct1);
@@ -1047,7 +1047,7 @@ static void dequantize_mul_mat_vec_q5_K_sycl(const void *vx, const float *y,
                                              dpct::queue_ptr stream) {
     GGML_ASSERT(ncols % QK_K == 0);
     const sycl::range<3> block_dims(1, 1, QK_WARP_SIZE);
-    stream->parallel_for(
+    syclex::nd_launch(*stream,
         sycl::nd_range<3>(sycl::range<3>(1, 1, nrows) * block_dims, block_dims),
         [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(QK_WARP_SIZE)]] {
             dequantize_mul_mat_vec_q5_k(vx, y, dst, ncols, item_ct1);
@@ -1063,7 +1063,7 @@ static void dequantize_mul_mat_vec_q6_K_sycl(const void *vx, const float *y,
     const int block_num_y = (nrows + ny - 1) / ny;
     const sycl::range<3> block_nums(1, 1, block_num_y);
     const sycl::range<3> block_dims(1, ny, QK_WARP_SIZE);
-    stream->parallel_for(
+    syclex::nd_launch(*stream,
         sycl::nd_range<3>(block_nums * block_dims, block_dims),
         [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(QK_WARP_SIZE)]] {
             dequantize_mul_mat_vec_q6_k(vx, y, dst, ncols, nrows, item_ct1);
