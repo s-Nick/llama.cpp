@@ -18,6 +18,8 @@
 #include <syclcompat/math.hpp>
 #include <map>
 
+#include <sycl/ext/oneapi/experimental/enqueue_functions.hpp>
+
 #ifdef GGML_SYCL_USE_INTEL_ONEMKL
 #include <oneapi/mkl.hpp>
 // Allow to use the same namespace for Intel oneMKL and oneMath
@@ -117,6 +119,8 @@ inline auto get_onemath_backend(sycl::queue& queue)
     static_assert(false, "Unsupported backend");
 #endif
 }
+
+namespace syclex = sycl::ext::oneapi::experimental;
 
 namespace dpct
 {
