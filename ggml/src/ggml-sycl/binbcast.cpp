@@ -225,7 +225,7 @@ struct bin_bcast_sycl {
                     dpct::has_capability_or_fail(stream->get_device(),
                                                  {sycl::aspect::fp16});
 
-                    stream->parallel_for(
+                    syclex::nd_launch(*stream,
                         sycl::nd_range<3>(sycl::range<3>(1, 1, block_num) *
                                               sycl::range<3>(1, 1, block_size),
                                           sycl::range<3>(1, 1, block_size)),
@@ -246,7 +246,7 @@ struct bin_bcast_sycl {
                 dpct::has_capability_or_fail(stream->get_device(),
                                              {sycl::aspect::fp16});
 
-                stream->parallel_for(
+                syclex::nd_launch(*stream,
                     sycl::nd_range<3>(block_nums * block_dims, block_dims),
                     [=](sycl::nd_item<3> item_ct1) {
                         k_bin_bcast<bin_op>(src0_dd, src1_dd, dst_dd, ne0, ne1,
