@@ -171,9 +171,9 @@ static void dequantize_row_q4_K_sycl(const void *vx, dst_t *y, const int64_t k,
         dpct::has_capability_or_fail(stream->get_device(),
                                      {sycl::aspect::fp16});
 
-        stream->submit([&](sycl::handler &cgh) {
+        syclex::submit(*stream,[&](sycl::handler &cgh) {
             sycl::local_accessor<uint8_t, 1> scale_local_acc(sycl::range<1>(12), cgh);
-            cgh.parallel_for(sycl::nd_range<3>(sycl::range<3>(1, 1, nb) *
+            syclex::nd_launch(cgh,sycl::nd_range<3>(sycl::range<3>(1, 1, nb) *
                                                    sycl::range<3>(1, 1, 32),
                                                sycl::range<3>(1, 1, 32)),
                              [=](sycl::nd_item<3> item_ct1) {
@@ -191,10 +191,10 @@ static void dequantize_row_q4_K_sycl_reorder(const void * vx, dst_t * y, const i
 
     dpct::has_capability_or_fail(stream->get_device(), { sycl::aspect::fp16 });
 
-    stream->submit([&](sycl::handler & cgh) {
+    syclex::submit(*stream,[&](sycl::handler & cgh) {
         sycl::local_accessor<uint8_t, 1> scale_local_acc(sycl::range<1>(12), cgh);
 
-        cgh.parallel_for(sycl::nd_range<1>(sycl::range<1>(global_size), sycl::range<1>(local_size)),
+        syclex::nd_launch(cgh,sycl::nd_range<1>(sycl::range<1>(global_size), sycl::range<1>(local_size)),
                          [=](sycl::nd_item<1> item_ct1) {
                              dequantize_block_q4_K_reorder(vx, y, get_pointer(scale_local_acc), item_ct1, nb);
                          });
@@ -284,8 +284,8 @@ static void dequantize_row_iq1_s_sycl(const void *vx, dst_t *y, const int64_t k,
         dpct::has_capability_or_fail(stream->get_device(),
                                      {sycl::aspect::fp16});
 
-        stream->submit([&](sycl::handler &cgh) {
-            cgh.parallel_for(sycl::nd_range<3>(sycl::range<3>(1, 1, nb) *
+        syclex::submit(*stream,[&](sycl::handler &cgh) {
+            syclex::nd_launch(cgh,sycl::nd_range<3>(sycl::range<3>(1, 1, nb) *
                                                    sycl::range<3>(1, 1, 32),
                                                sycl::range<3>(1, 1, 32)),
                              [=](sycl::nd_item<3> item_ct1) {
@@ -305,8 +305,8 @@ static void dequantize_row_iq1_m_sycl(const void *vx, dst_t *y, const int64_t k,
         dpct::has_capability_or_fail(stream->get_device(),
                                      {sycl::aspect::fp16});
 
-        stream->submit([&](sycl::handler &cgh) {
-            cgh.parallel_for(sycl::nd_range<3>(sycl::range<3>(1, 1, nb) *
+        syclex::submit(*stream,[&](sycl::handler &cgh) {
+            syclex::nd_launch(cgh,sycl::nd_range<3>(sycl::range<3>(1, 1, nb) *
                                                    sycl::range<3>(1, 1, 32),
                                                sycl::range<3>(1, 1, 32)),
                              [=](sycl::nd_item<3> item_ct1) {
@@ -326,8 +326,8 @@ static void dequantize_row_iq2_xxs_sycl(const void *vx, dst_t *y, const int64_t 
         dpct::has_capability_or_fail(stream->get_device(),
                                      {sycl::aspect::fp16});
 
-        stream->submit([&](sycl::handler &cgh) {
-            cgh.parallel_for(sycl::nd_range<3>(sycl::range<3>(1, 1, nb) *
+        syclex::submit(*stream,[&](sycl::handler &cgh) {
+            syclex::nd_launch(cgh,sycl::nd_range<3>(sycl::range<3>(1, 1, nb) *
                                                    sycl::range<3>(1, 1, 32),
                                                sycl::range<3>(1, 1, 32)),
                              [=](sycl::nd_item<3> item_ct1) {
@@ -347,8 +347,8 @@ static void dequantize_row_iq2_xs_sycl(const void *vx, dst_t *y, const int64_t k
         dpct::has_capability_or_fail(stream->get_device(),
                                      {sycl::aspect::fp16});
 
-        stream->submit([&](sycl::handler &cgh) {
-            cgh.parallel_for(sycl::nd_range<3>(sycl::range<3>(1, 1, nb) *
+        syclex::submit(*stream,[&](sycl::handler &cgh) {
+            syclex::nd_launch(cgh,sycl::nd_range<3>(sycl::range<3>(1, 1, nb) *
                                                    sycl::range<3>(1, 1, 32),
                                                sycl::range<3>(1, 1, 32)),
                              [=](sycl::nd_item<3> item_ct1) {
@@ -368,8 +368,8 @@ static void dequantize_row_iq2_s_sycl(const void *vx, dst_t *y, const int64_t k,
         dpct::has_capability_or_fail(stream->get_device(),
                                      {sycl::aspect::fp16});
 
-        stream->submit([&](sycl::handler &cgh) {
-            cgh.parallel_for(sycl::nd_range<3>(sycl::range<3>(1, 1, nb) *
+        syclex::submit(*stream,[&](sycl::handler &cgh) {
+            syclex::nd_launch(cgh,sycl::nd_range<3>(sycl::range<3>(1, 1, nb) *
                                                    sycl::range<3>(1, 1, 32),
                                                sycl::range<3>(1, 1, 32)),
                              [=](sycl::nd_item<3> item_ct1) {
@@ -388,8 +388,8 @@ static void dequantize_row_iq3_xxs_sycl(const void *vx, dst_t *y, const int64_t 
         dpct::has_capability_or_fail(stream->get_device(),
                                      {sycl::aspect::fp16});
 
-        stream->submit([&](sycl::handler &cgh) {
-            cgh.parallel_for(sycl::nd_range<3>(sycl::range<3>(1, 1, nb) *
+        syclex::submit(*stream,[&](sycl::handler &cgh) {
+            syclex::nd_launch(cgh,sycl::nd_range<3>(sycl::range<3>(1, 1, nb) *
                                                    sycl::range<3>(1, 1, 32),
                                                sycl::range<3>(1, 1, 32)),
                              [=](sycl::nd_item<3> item_ct1) {
@@ -409,8 +409,8 @@ static void dequantize_row_iq3_s_sycl(const void *vx, dst_t *y, const int64_t k,
         dpct::has_capability_or_fail(stream->get_device(),
                                      {sycl::aspect::fp16});
 
-        stream->submit([&](sycl::handler &cgh) {
-            cgh.parallel_for(sycl::nd_range<3>(sycl::range<3>(1, 1, nb) *
+        syclex::submit(*stream,[&](sycl::handler &cgh) {
+            syclex::nd_launch(cgh,sycl::nd_range<3>(sycl::range<3>(1, 1, nb) *
                                                    sycl::range<3>(1, 1, 32),
                                                sycl::range<3>(1, 1, 32)),
                              [=](sycl::nd_item<3> item_ct1) {
@@ -432,8 +432,8 @@ static void dequantize_row_iq4_xs_sycl(const void *vx, dst_t *y, const int64_t k
             dpct::has_capability_or_fail(stream->get_device(),
                                          {sycl::aspect::fp16});
 
-            stream->submit([&](sycl::handler &cgh) {
-                  cgh.parallel_for(
+            syclex::submit(*stream,[&](sycl::handler &cgh) {
+                  syclex::nd_launch(cgh,
                       sycl::nd_range<3>(sycl::range<3>(1, 1, nb) *
                                             sycl::range<3>(1, 1, 32),
                                         sycl::range<3>(1, 1, 32)),
@@ -453,8 +453,8 @@ static void dequantize_row_iq4_nl_sycl(const void *vx, dst_t *y, const int64_t k
             dpct::has_capability_or_fail(stream->get_device(),
                                          {sycl::aspect::fp16});
 
-            stream->submit([&](sycl::handler &cgh) {
-                  cgh.parallel_for(
+            syclex::submit(*stream,[&](sycl::handler &cgh) {
+                  syclex::nd_launch(cgh,
                       sycl::nd_range<3>(sycl::range<3>(1, 1, nb) *
                                             sycl::range<3>(1, 1, 32),
                                         sycl::range<3>(1, 1, 32)),
