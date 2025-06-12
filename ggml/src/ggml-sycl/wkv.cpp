@@ -207,10 +207,10 @@ void ggml_sycl_op_rwkv_wkv6(ggml_backend_sycl_context& ctx, ggml_tensor* dst) {
 
     // Submit kernel
     if (C / H == WKV_BLOCK_SIZE) {
-        stream->submit([&](sycl::handler& cgh) {
+        syclex::submit(*stream,[&](sycl::handler& cgh) {
             sycl::local_accessor<float, 1> shared_mem_acc(shared_mem_size, cgh);
 
-            cgh.parallel_for(
+            syclex::nd_launch(cgh,
                 sycl::nd_range<3>(grid_dims * block_dims, block_dims),
                 [=](sycl::nd_item<3> item_ct1) {
                     rwkv_wkv6_f32_kernel<WKV_BLOCK_SIZE>(
@@ -220,10 +220,10 @@ void ggml_sycl_op_rwkv_wkv6(ggml_backend_sycl_context& ctx, ggml_tensor* dst) {
                 });
         });
     } else {
-        stream->submit([&](sycl::handler& cgh) {
+        syclex::submit(*stream,[&](sycl::handler& cgh) {
             sycl::local_accessor<float, 1> shared_mem_acc(shared_mem_size, cgh);
 
-            cgh.parallel_for(
+            syclex::nd_launch(cgh,
                 sycl::nd_range<3>(grid_dims * block_dims, block_dims),
                 [=](sycl::nd_item<3> item_ct1) {
                     rwkv_wkv6_f32_kernel<WKV_BLOCK_SIZE * 2>(
@@ -264,10 +264,10 @@ void ggml_sycl_op_rwkv_wkv7(ggml_backend_sycl_context& ctx, ggml_tensor* dst) {
 
     // Submit kernel
     if (C / H == WKV_BLOCK_SIZE) {
-        stream->submit([&](sycl::handler& cgh) {
+        syclex::submit(*stream,[&](sycl::handler& cgh) {
             sycl::local_accessor<float, 1> shared_mem_acc(shared_mem_size, cgh);
 
-            cgh.parallel_for(
+            syclex::nd_launch(cgh,
                 sycl::nd_range<3>(grid_dims * block_dims, block_dims),
                 [=](sycl::nd_item<3> item_ct1) {
                     rwkv_wkv7_f32_kernel<WKV_BLOCK_SIZE>(
@@ -277,10 +277,10 @@ void ggml_sycl_op_rwkv_wkv7(ggml_backend_sycl_context& ctx, ggml_tensor* dst) {
                 });
         });
     } else {
-        stream->submit([&](sycl::handler& cgh) {
+        syclex::submit(*stream,[&](sycl::handler& cgh) {
             sycl::local_accessor<float, 1> shared_mem_acc(shared_mem_size, cgh);
 
-            cgh.parallel_for(
+            syclex::nd_launch(cgh,
                 sycl::nd_range<3>(grid_dims * block_dims, block_dims),
                 [=](sycl::nd_item<3> item_ct1) {
                     rwkv_wkv7_f32_kernel<WKV_BLOCK_SIZE * 2>(
