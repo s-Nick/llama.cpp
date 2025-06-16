@@ -120,7 +120,35 @@ inline auto get_onemath_backend(sycl::queue& queue)
 #endif
 }
 
+template<int NR = 3, typename L>
+__dpct_inline__ auto sycl_parallel_for(sycl::handler& cgh, sycl::nd_range<NR> nd_range, L&& func){
+#ifdef SYCL_EXT_ONEAPI_ENQUEUE_FUNCTIONS
 namespace syclex = sycl::ext::oneapi::experimental;
+    syclex::nd_launch(cgh, nd_range, func);
+#else
+    return cgh.parallel_for(nd_range, func);
+#endif
+}
+
+template<int NR = 3, typename L>
+__dpct_inline__ auto sycl_parallel_for(sycl::queue* q, sycl::nd_range<NR> nd_range, L&& func){
+#ifdef SYCL_EXT_ONEAPI_ENQUEUE_FUNCTIONS
+namespace syclex = sycl::ext::oneapi::experimental;
+    syclex::nd_launch(*q, nd_range, func);
+#else
+    return q->parallel_for(nd_range, func);
+#endif
+}
+
+template<typename L>
+__dpct_inline__ auto sycl_launch(sycl::queue* stream, L&& func){
+#ifdef SYCL_EXT_ONEAPI_ENQUEUE_FUNCTIONS
+namespace syclex = sycl::ext::oneapi::experimental;
+    syclex::submit(*stream, func);
+#else
+    return stream->submit(func);
+#endif
+}
 
 namespace dpct
 {

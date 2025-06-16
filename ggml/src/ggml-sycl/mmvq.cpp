@@ -544,8 +544,8 @@ static void reorder_mul_mat_vec_q4_0_q8_1_sycl(const void * vx, const void * vy,
     const sycl::range<3> global_size(1, GGML_SYCL_MMV_Y, (block_num_y * WARP_SIZE));
     const sycl::range<3> workgroup_size(1, GGML_SYCL_MMV_Y, num_subgroups * WARP_SIZE);
 
-    syclex::submit(*stream,[&](sycl::handler & cgh) {
-        syclex::nd_launch(cgh,sycl::nd_range<3>(global_size, workgroup_size),
+    sycl_launch(stream,[&](sycl::handler & cgh) {
+        sycl_parallel_for(cgh,sycl::nd_range<3>(global_size, workgroup_size),
                          [=](sycl::nd_item<3> nd_item) [[sycl::reqd_sub_group_size(WARP_SIZE)]] {
                              mul_mat_vec_q_reorder<reorder_vec_dot_q_sycl<GGML_TYPE_Q4_0>>(vx, vy, dst, ncols, nrows,
                                                                                            nd_item);
@@ -561,8 +561,8 @@ static void mul_mat_vec_q4_0_q8_1_sycl(const void * vx, const void * vy, float *
     const sycl::range<3> block_dims(1, GGML_SYCL_MMV_Y, WARP_SIZE);
 
     {
-        syclex::submit(*stream,[&](sycl::handler & cgh) {
-            syclex::nd_launch(cgh,sycl::nd_range<3>(block_nums * block_dims, block_dims),
+        sycl_launch(stream,[&](sycl::handler & cgh) {
+            sycl_parallel_for(cgh,sycl::nd_range<3>(block_nums * block_dims, block_dims),
                              [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(WARP_SIZE)]] {
                                  mul_mat_vec_q<QK4_0, QI4_0, block_q4_0, VDR_Q4_0_Q8_1_MMVQ, vec_dot_q4_0_q8_1>(
                                      vx, vy, dst, ncols, nrows, item_ct1);
@@ -581,9 +581,9 @@ static void mul_mat_vec_q4_1_q8_1_sycl(const void *vx, const void *vy,
     const sycl::range<3> block_dims(1, GGML_SYCL_MMV_Y, WARP_SIZE);
     {
 
-        syclex::submit(*stream,[&](sycl::handler &cgh) {
+        sycl_launch(stream,[&](sycl::handler &cgh) {
 
-            syclex::nd_launch(cgh,
+            sycl_parallel_for(cgh,
                 sycl::nd_range<3>(block_nums * block_dims, block_dims),
                 [=](sycl::nd_item<3> item_ct1)
                     [[sycl::reqd_sub_group_size(WARP_SIZE)]] {
@@ -605,9 +605,9 @@ static void mul_mat_vec_q5_0_q8_1_sycl(const void *vx, const void *vy,
     const sycl::range<3> block_dims(1, GGML_SYCL_MMV_Y, WARP_SIZE);
     {
 
-        syclex::submit(*stream,[&](sycl::handler &cgh) {
+        sycl_launch(stream,[&](sycl::handler &cgh) {
 
-            syclex::nd_launch(cgh,
+            sycl_parallel_for(cgh,
                 sycl::nd_range<3>(block_nums * block_dims, block_dims),
                 [=](sycl::nd_item<3> item_ct1)
                     [[sycl::reqd_sub_group_size(WARP_SIZE)]] {
@@ -629,9 +629,9 @@ static void mul_mat_vec_q5_1_q8_1_sycl(const void *vx, const void *vy,
     const sycl::range<3> block_dims(1, GGML_SYCL_MMV_Y, WARP_SIZE);
     {
 
-        syclex::submit(*stream,[&](sycl::handler &cgh) {
+        sycl_launch(stream,[&](sycl::handler &cgh) {
 
-            syclex::nd_launch(cgh,
+            sycl_parallel_for(cgh,
                 sycl::nd_range<3>(block_nums * block_dims, block_dims),
                 [=](sycl::nd_item<3> item_ct1)
                     [[sycl::reqd_sub_group_size(WARP_SIZE)]] {
@@ -653,9 +653,9 @@ static void mul_mat_vec_q8_0_q8_1_sycl(const void *vx, const void *vy,
     const sycl::range<3> block_dims(1, GGML_SYCL_MMV_Y, WARP_SIZE);
     {
 
-        syclex::submit(*stream,[&](sycl::handler &cgh) {
+        sycl_launch(stream,[&](sycl::handler &cgh) {
 
-            syclex::nd_launch(cgh,
+            sycl_parallel_for(cgh,
                 sycl::nd_range<3>(block_nums * block_dims, block_dims),
                 [=](sycl::nd_item<3> item_ct1)
                     [[sycl::reqd_sub_group_size(WARP_SIZE)]] {
@@ -677,9 +677,9 @@ static void mul_mat_vec_q2_K_q8_1_sycl(const void *vx, const void *vy,
     const sycl::range<3> block_dims(1, GGML_SYCL_MMV_Y, WARP_SIZE);
     {
 
-        syclex::submit(*stream,[&](sycl::handler &cgh) {
+        sycl_launch(stream,[&](sycl::handler &cgh) {
 
-            syclex::nd_launch(cgh,
+            sycl_parallel_for(cgh,
                 sycl::nd_range<3>(block_nums * block_dims, block_dims),
                 [=](sycl::nd_item<3> item_ct1)
                     [[sycl::reqd_sub_group_size(WARP_SIZE)]] {
@@ -701,9 +701,9 @@ static void mul_mat_vec_q3_K_q8_1_sycl(const void *vx, const void *vy,
     const sycl::range<3> block_dims(1, GGML_SYCL_MMV_Y, WARP_SIZE);
     {
 
-        syclex::submit(*stream,[&](sycl::handler &cgh) {
+        sycl_launch(stream,[&](sycl::handler &cgh) {
 
-            syclex::nd_launch(cgh,
+            sycl_parallel_for(cgh,
                 sycl::nd_range<3>(block_nums * block_dims, block_dims),
                 [=](sycl::nd_item<3> item_ct1)
                     [[sycl::reqd_sub_group_size(WARP_SIZE)]] {
@@ -725,9 +725,9 @@ static void mul_mat_vec_q4_K_q8_1_sycl(const void *vx, const void *vy,
     const sycl::range<3> block_dims(1, GGML_SYCL_MMV_Y, WARP_SIZE);
     {
 
-        syclex::submit(*stream,[&](sycl::handler &cgh) {
+        sycl_launch(stream,[&](sycl::handler &cgh) {
 
-            syclex::nd_launch(cgh,
+            sycl_parallel_for(cgh,
                 sycl::nd_range<3>(block_nums * block_dims, block_dims),
                 [=](sycl::nd_item<3> item_ct1)
                     [[sycl::reqd_sub_group_size(WARP_SIZE)]] {
@@ -750,8 +750,8 @@ static void reorder_mul_mat_vec_q4_k_q8_1_sycl(const void * vx, const void * vy,
     const sycl::range<3> global_size(1, GGML_SYCL_MMV_Y, block_num_y * WARP_SIZE);
     const sycl::range<3> workgroup_size(1, GGML_SYCL_MMV_Y, num_subgroups * WARP_SIZE);
 
-    syclex::submit(*stream,[&](sycl::handler & cgh) {
-        syclex::nd_launch(cgh,sycl::nd_range<3>(global_size, workgroup_size),
+    sycl_launch(stream,[&](sycl::handler & cgh) {
+        sycl_parallel_for(cgh,sycl::nd_range<3>(global_size, workgroup_size),
                             [=](sycl::nd_item<3> nd_item) [[sycl::reqd_sub_group_size(WARP_SIZE)]] {
                                 mul_mat_vec_q_reorder<reorder_vec_dot_q_sycl<GGML_TYPE_Q4_K>>(vx, vy, dst, ncols,
                                                                                             nrows, nd_item);
@@ -770,9 +770,9 @@ static void mul_mat_vec_q5_K_q8_1_sycl(const void *vx, const void *vy,
     const sycl::range<3> block_dims(1, GGML_SYCL_MMV_Y, WARP_SIZE);
     {
 
-        syclex::submit(*stream,[&](sycl::handler &cgh) {
+        sycl_launch(stream,[&](sycl::handler &cgh) {
 
-            syclex::nd_launch(cgh,
+            sycl_parallel_for(cgh,
                 sycl::nd_range<3>(block_nums * block_dims, block_dims),
                 [=](sycl::nd_item<3> item_ct1)
                     [[sycl::reqd_sub_group_size(WARP_SIZE)]] {
@@ -794,8 +794,8 @@ static void reorder_mul_mat_vec_q6_k_q8_1_sycl(const void * vx, const void * vy,
     const sycl::range<3> global_size(1, GGML_SYCL_MMV_Y, block_num_y * WARP_SIZE);
     const sycl::range<3> workgroup_size(1, GGML_SYCL_MMV_Y, num_subgroups * WARP_SIZE);
 
-    syclex::submit(*stream,[&](sycl::handler & cgh) {
-        syclex::nd_launch(cgh,sycl::nd_range<3>(global_size, workgroup_size),
+    sycl_launch(stream,[&](sycl::handler & cgh) {
+        sycl_parallel_for(cgh,sycl::nd_range<3>(global_size, workgroup_size),
                          [=](sycl::nd_item<3> nd_item) [[sycl::reqd_sub_group_size(WARP_SIZE)]] {
                              mul_mat_vec_q_reorder<reorder_vec_dot_q_sycl<GGML_TYPE_Q6_K>>(vx, vy, dst, ncols, nrows,
                                                                                            nd_item);
@@ -812,9 +812,9 @@ static void mul_mat_vec_q6_K_q8_1_sycl(const void *vx, const void *vy,
     const sycl::range<3> block_dims(1, GGML_SYCL_MMV_Y, WARP_SIZE);
     {
 
-        syclex::submit(*stream,[&](sycl::handler &cgh) {
+        sycl_launch(stream,[&](sycl::handler &cgh) {
 
-            syclex::nd_launch(cgh,
+            sycl_parallel_for(cgh,
                 sycl::nd_range<3>(block_nums * block_dims, block_dims),
                 [=](sycl::nd_item<3> item_ct1)
                     [[sycl::reqd_sub_group_size(WARP_SIZE)]] {
@@ -836,8 +836,8 @@ static void mul_mat_vec_iq2_xxs_q8_1_sycl(const void *vx, const void *vy,
     const sycl::range<3> block_nums(1, 1, block_num_y);
     const sycl::range<3> block_dims(1, GGML_SYCL_MMV_Y, WARP_SIZE);
     {
-        syclex::submit(*stream,[&](sycl::handler &cgh) {
-            syclex::nd_launch(cgh,
+        sycl_launch(stream,[&](sycl::handler &cgh) {
+            sycl_parallel_for(cgh,
                 sycl::nd_range<3>(block_nums * block_dims, block_dims),
                 [=](sycl::nd_item<3> item_ct1)
                     [[sycl::reqd_sub_group_size(WARP_SIZE)]] {
@@ -857,8 +857,8 @@ static void mul_mat_vec_iq2_xs_q8_1_sycl(const void *vx, const void *vy,
     const sycl::range<3> block_nums(1, 1, block_num_y);
     const sycl::range<3> block_dims(1, GGML_SYCL_MMV_Y, WARP_SIZE);
     {
-        syclex::submit(*stream,[&](sycl::handler & cgh) {
-            syclex::nd_launch(cgh,
+        sycl_launch(stream,[&](sycl::handler & cgh) {
+            sycl_parallel_for(cgh,
                 sycl::nd_range<3>(block_nums * block_dims, block_dims),
                 [=](sycl::nd_item<3> item_ct1)
                     [[sycl::reqd_sub_group_size(WARP_SIZE)]] {
@@ -879,8 +879,8 @@ static void mul_mat_vec_iq2_s_q8_1_sycl(const void *vx, const void *vy,
     const sycl::range<3> block_dims(1, GGML_SYCL_MMV_Y, WARP_SIZE);
     {
 
-        syclex::submit(*stream,[&](sycl::handler &cgh) {
-            syclex::nd_launch(cgh,
+        sycl_launch(stream,[&](sycl::handler &cgh) {
+            sycl_parallel_for(cgh,
                 sycl::nd_range<3>(block_nums * block_dims, block_dims),
                 [=](sycl::nd_item<3> item_ct1)
                     [[sycl::reqd_sub_group_size(WARP_SIZE)]] {
@@ -901,8 +901,8 @@ static void mul_mat_vec_iq3_xxs_q8_1_sycl(const void *vx, const void *vy,
     const sycl::range<3> block_dims(1, GGML_SYCL_MMV_Y, WARP_SIZE);
     {
 
-        syclex::submit(*stream,[&](sycl::handler &cgh) {
-            syclex::nd_launch(cgh,
+        sycl_launch(stream,[&](sycl::handler &cgh) {
+            sycl_parallel_for(cgh,
                 sycl::nd_range<3>(block_nums * block_dims, block_dims),
                 [=](sycl::nd_item<3> item_ct1)
                     [[sycl::reqd_sub_group_size(WARP_SIZE)]] {
@@ -923,8 +923,8 @@ static void mul_mat_vec_iq3_s_q8_1_sycl(const void *vx, const void *vy,
     const sycl::range<3> block_dims(1, GGML_SYCL_MMV_Y, WARP_SIZE);
     {
 
-        syclex::submit(*stream,[&](sycl::handler &cgh) {
-            syclex::nd_launch(cgh,
+        sycl_launch(stream,[&](sycl::handler &cgh) {
+            sycl_parallel_for(cgh,
                 sycl::nd_range<3>(block_nums * block_dims, block_dims),
                 [=](sycl::nd_item<3> item_ct1)
                     [[sycl::reqd_sub_group_size(WARP_SIZE)]] {
@@ -945,8 +945,8 @@ static void mul_mat_vec_iq1_s_q8_1_sycl(const void *vx, const void *vy,
     const sycl::range<3> block_dims(1, GGML_SYCL_MMV_Y, WARP_SIZE);
     {
 
-        syclex::submit(*stream,[&](sycl::handler &cgh) {
-            syclex::nd_launch(cgh,
+        sycl_launch(stream,[&](sycl::handler &cgh) {
+            sycl_parallel_for(cgh,
                 sycl::nd_range<3>(block_nums * block_dims, block_dims),
                 [=](sycl::nd_item<3> item_ct1)
                     [[sycl::reqd_sub_group_size(WARP_SIZE)]] {
@@ -966,8 +966,8 @@ static void mul_mat_vec_iq1_m_q8_1_sycl(const void *vx, const void *vy,
     const sycl::range<3> block_nums(1, 1, block_num_y);
     const sycl::range<3> block_dims(1, GGML_SYCL_MMV_Y, WARP_SIZE);
     {
-        syclex::submit(*stream,[&](sycl::handler &cgh) {
-            syclex::nd_launch(cgh,
+        sycl_launch(stream,[&](sycl::handler &cgh) {
+            sycl_parallel_for(cgh,
                 sycl::nd_range<3>(block_nums * block_dims, block_dims),
                 [=](sycl::nd_item<3> item_ct1)
                     [[sycl::reqd_sub_group_size(WARP_SIZE)]] {
@@ -988,8 +988,8 @@ static void mul_mat_vec_iq4_nl_q8_1_sycl(const void *vx, const void *vy,
     const sycl::range<3> block_dims(1, GGML_SYCL_MMV_Y, WARP_SIZE);
     {
 
-        syclex::submit(*stream,[&](sycl::handler &cgh) {
-            syclex::nd_launch(cgh,
+        sycl_launch(stream,[&](sycl::handler &cgh) {
+            sycl_parallel_for(cgh,
                 sycl::nd_range<3>(block_nums * block_dims, block_dims),
                 [=](sycl::nd_item<3> item_ct1)
                     [[sycl::reqd_sub_group_size(WARP_SIZE)]] {
@@ -1010,8 +1010,8 @@ static void mul_mat_vec_iq4_xs_q8_1_sycl(const void *vx, const void *vy,
     const sycl::range<3> block_dims(1, GGML_SYCL_MMV_Y, WARP_SIZE);
     {
 
-        syclex::submit(*stream,[&](sycl::handler &cgh) {
-            syclex::nd_launch(cgh,
+        sycl_launch(stream,[&](sycl::handler &cgh) {
+            sycl_parallel_for(cgh,
                 sycl::nd_range<3>(block_nums * block_dims, block_dims),
                 [=](sycl::nd_item<3> item_ct1)
                     [[sycl::reqd_sub_group_size(WARP_SIZE)]] {
