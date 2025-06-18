@@ -14,9 +14,8 @@
 #define GGML_SYCL_DPCT_HELPER_HPP
 
 #include <map>
-#include <sycl/ext/oneapi/experimental/enqueue_functions.hpp>
-#include <sycl/half_type.hpp>
 #include <sycl/sycl.hpp>
+#include <sycl/half_type.hpp>
 #include <syclcompat/math.hpp>
 
 #ifdef GGML_SYCL_USE_INTEL_ONEMKL
@@ -119,32 +118,32 @@ inline auto get_onemath_backend(sycl::queue& queue)
 #endif
 }
 
-template <int NR = 3, typename L>
-__dpct_inline__ auto sycl_parallel_for(sycl::handler & cgh, sycl::nd_range<NR> nd_range, L && func) {
+template <int NR, typename Func>
+__dpct_inline__ void sycl_parallel_for(sycl::handler & cgh, sycl::nd_range<NR> nd_range, Func && func) {
 #ifdef SYCL_EXT_ONEAPI_ENQUEUE_FUNCTIONS
     namespace syclex = sycl::ext::oneapi::experimental;
     syclex::nd_launch(cgh, nd_range, func);
 #else
-    return cgh.parallel_for(nd_range, func);
+    cgh.parallel_for(nd_range, func);
 #endif
 }
 
-template <int NR = 3, typename L>
-__dpct_inline__ auto sycl_parallel_for(sycl::queue * q, sycl::nd_range<NR> nd_range, L && func) {
+template <int NR, typename Func>
+__dpct_inline__ void sycl_parallel_for(sycl::queue * q, sycl::nd_range<NR> nd_range, Func && func) {
 #ifdef SYCL_EXT_ONEAPI_ENQUEUE_FUNCTIONS
     namespace syclex = sycl::ext::oneapi::experimental;
     syclex::nd_launch(*q, nd_range, func);
 #else
-    return q->parallel_for(nd_range, func);
+    q->parallel_for(nd_range, func);
 #endif
 }
 
-template <typename L> __dpct_inline__ auto sycl_launch(sycl::queue * stream, L && func) {
+template <typename Func> __dpct_inline__ void sycl_launch(sycl::queue * stream, Func && func) {
 #ifdef SYCL_EXT_ONEAPI_ENQUEUE_FUNCTIONS
     namespace syclex = sycl::ext::oneapi::experimental;
     syclex::submit(*stream, func);
 #else
-    return stream->submit(func);
+    stream->submit(func);
 #endif
 }
 
